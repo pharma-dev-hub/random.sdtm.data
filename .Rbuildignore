@@ -1,0 +1,12 @@
+^random\.sdtm\.data\.Rproj$
+^\.Rproj\.user$
+^.*\.Rproj$
+^\.Rproj\.user$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^\.github$
+^codecov\.yml$
+^\.lintr$
+^vignettes/.*_cache$
+^\.pre-commit-config\.yaml$
