@@ -1,0 +1,114 @@
+library(dplyr)
+library(tidyr)
+
+
+
+# Global requirement
+studyid <- "AD2025"
+arm <- c()
+armcd <- c()
+element <- c()
+etcd <- c()
+
+# Logic checks
+
+if (length(etcd) == length(element)) {
+  
+  
+} else {
+  
+  print("No. of ELEMENT and ETCD not matched")
+  
+  print("No. of ARM and ARMCD not matched")
+}
+
+# Determining final no.of rows for the dataset
+n_rows <- n_armcd * n_etcd
+
+# Creating empty dataframe with variables, Labels
+emptydata <- function(domain) {
+  
+  spec_in <- read_excel("", sheet = "ValueLevel") 
+  
+  spec_1 <- spec_in %>% filter(toupper(Dataset) == domain) %>% 
+    select(Variable, Label)
+  
+  df_emp <- as.data.frame(matrix(NA, nrow = n_rows, ncol = length(spec_1)))
+  
+  names(df_emp) <- spec_1$Variable
+  labels(df_emp) <- spec_1$Label
+}
+
+# mapping common variables
+
+
+ta <- function(domain = "TA", armcd = c(), arm = c(), taetord = c(), etcd = c(), element =  c(), epoch = c()) {
+  
+  n_armcd = length(armcd)
+  n_etcd = length(etcd)
+  
+  avars <- data.frame(arm, armcd)
+  evars <- data.frame(etcd, element, taetord)
+  
+  arm_x_evars <- crossing(avars, evars)
+  
+  names(arm_x_evars) <- toupper(names(arm_x_evars))
+  
+  df2 <- merge(df_emp, arm_x_evars)
+  
+  df1 <- df_emp %>% mutate(STUDYID = studyid,
+                           DOMAIN = domain)
+}
+
+ta(armcd = c("PLA", "ADA", "DER"),
+   arm =  c("Placebo", "Adalimumab", "Dermavalimab"),
+   taetord = c(1, 2, 2003),
+   etcd = c("SCR", "TRT", "FUP"),
+   element = c("Screening", "Treatment", "Follow-up"),
+   epoch = c("SCR", "TRT", "FUP")
+)
+
+
+
+te <- function(domain = "TE", etcd = c(), element = c(), testrl = c(), teenrl = c(), tedur = c()) {
+  
+}
+
+
+
+
+
+
+
+# should be removed
+
+Variable <- c("STUDYID",
+              "DOMAIN",
+              "ARMCD" ,
+              "ARM",
+              "TAETORD",
+              "ETCD" ,
+              "ELEMENT" ,
+              "TABRANCH",
+              'TATRANS' ,
+              "EPOCH")
+
+Label <- c("STUDYID",
+           "DOMAIN",
+           "ARMCD" ,
+           "ARM",
+           "TAETORD",
+           "ETCD" ,
+           "ELEMENT" ,
+           "TABRANCH",
+           'TATRANS' ,
+           "EPOCH")
+
+df_emp <- as.data.frame(matrix(NA, nrow = n_rows, ncol = length(Variable)))
+
+names(df_emp) <- Variable
+labels(df_emp) <- Label
+
+
+
+
