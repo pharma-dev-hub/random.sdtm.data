@@ -1,6 +1,7 @@
 
 # rta Function to create synthetic TA dataset
 rta <- function(domain = "TA",
+                studyid = "AD2025",
                 armcd = c(),
                 arm = c(),
                 taetord = c(),

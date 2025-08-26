@@ -1,6 +1,7 @@
 
 # rtv Function to create synthetic TV dataset
 rtv <- function(domain ="TV",
+                studyid = "AD2025",
                 visitnum = c(),
                 visit = c(),
                 visitdy = c(),

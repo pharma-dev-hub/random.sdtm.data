@@ -1,6 +1,7 @@
 
 # rti Function to create synthetic TI dataset
 rti <- function(domain = "TI",
+                studyid = "AD2025",
                 ietestcd = c(),
                 ietest = c(),
                 iecat = c(),

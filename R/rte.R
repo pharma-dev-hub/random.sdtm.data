@@ -1,6 +1,7 @@
 
 # rte Function to create synthetic TE dataset
 rte <- function(domain = "TE",
+                studyid = "AD2025",
                 etcd = c(),
                 element = c(),
                 testrl = c(),
