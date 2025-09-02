@@ -20,8 +20,16 @@
 #' @examples
 #' dm <- rdm(n_patients = 100)
 #' head(dm)
+
+
+ta_arms <- ta %>%
+  select(ARMCD, ARM) %>%
+  distinct() %>%
+  arrange(ARMCD)
+
+arms_list <- map2(ta_arms$ARMCD, ta_arms$ARM, ~ list(code = .x, description = .y))
+
 rdm <- function(n_patients = 400,
-                study_id = "STUDY001",
                 sites = c("001", "002", "003", "004"),
                 investigators = list(
                   "001" = list(id = "INV001", name = "Dr. Smith, John"),
@@ -29,15 +37,10 @@ rdm <- function(n_patients = 400,
                   "003" = list(id = "INV003", name = "Dr. Williams, Robert"),
                   "004" = list(id = "INV004", name = "Dr. Brown, Sarah")
                 ),
-                arms = list(
-                  list(code = "PBO", description = "Placebo"),
-                  list(code = "TRT01", description = "Treatment 50mg"),
-                  list(code = "TRT02", description = "Treatment 100mg")
-                ),
+                arms = arms_list,
                 seed = NULL,
                 na_prob = 0.05,
                 cached = FALSE) {
-
   checkmate::assert_count(n_patients, positive = TRUE)
   checkmate::assert_string(study_id)
   checkmate::assert_character(sites, min.len = 1)
@@ -46,11 +49,9 @@ rdm <- function(n_patients = 400,
   checkmate::assert_number(seed, null.ok = TRUE)
   checkmate::assert_number(na_prob, lower = 0, upper = 1)
   checkmate::assert_flag(cached)
-
   if (cached) {
     return(get_cached_data("dm"))
   }
-
   if (!is.null(seed)) {
     set.seed(seed)
   }
@@ -84,7 +85,6 @@ rdm <- function(n_patients = 400,
   # Simulate 80% still ongoing, 15% completed, 5% discontinued
   status <- sample(c("ongoing", "completed", "discontinued"), n_patients,
                    replace = TRUE, prob = c(0.80, 0.15, 0.05))
-
   for (i in 1:n_patients) {
     if (status[i] == "completed") {
       # Study duration 12 weeks (84 days)
@@ -121,7 +121,7 @@ rdm <- function(n_patients = 400,
   # Generate ages first
   dm$AGE <- round(rnorm(n_patients, mean = 55, sd = 12))
   dm$AGE[dm$AGE < 18] <- 18
-  dm$AGE[dm$AGE > 85] <- 85
+  dm$AGE[dm$AGE > 75] <- 75
   dm$AGEU <- "YEARS"
 
   # Calculate birth dates from age and informed consent date
@@ -150,10 +150,10 @@ rdm <- function(n_patients = 400,
 
   # Treatment arms
   arm_codes <- sapply(arms, function(x) x$code)
-  arm_descs <- sapply(arms, function(x) x$description)
-
-  dm$ARMCD <- sample(arm_codes, n_patients, replace = TRUE)
-  dm$ARM <- arm_descs[match(dm$ARMCD, arm_codes)]
+  dm$ARMCD <- rep(arm_codes, length.out = n_patients)
+  dm$ARM <- sapply(dm$ARMCD, function(code) {
+    arms[[which(arm_codes == code)]]$description
+  })
 
   # Actual arm (usually same as planned, but 2% crossover)
   dm$ACTARMCD <- dm$ARMCD
@@ -163,7 +163,7 @@ rdm <- function(n_patients = 400,
   for (idx in crossover_idx) {
     new_arm <- sample(arm_codes[arm_codes != dm$ARMCD[idx]], 1)
     dm$ACTARMCD[idx] <- new_arm
-    dm$ACTARM[idx] <- arm_descs[match(new_arm, arm_codes)]
+    dm$ACTARM[idx] <- arms[[which(arm_codes == new_arm)]]$description
   }
 
   # Country (ISO 3166 Alpha-3)
@@ -191,39 +191,37 @@ rdm <- function(n_patients = 400,
 
   # Apply metadata
   metadata <- list(
-    STUDYID = "Study Identifier",
-    DOMAIN = "Domain Abbreviation",
-    USUBJID = "Unique Subject Identifier",
-    SUBJID = "Subject Identifier for the Study",
-    RFSTDTC = "Subject Reference Start Date/Time",
-    RFENDTC = "Subject Reference End Date/Time",
+    STUDYID  = "Study Identifier",
+    DOMAIN   = "Domain Abbreviation",
+    USUBJID  = "Unique Subject Identifier",
+    SUBJID   = "Subject Identifier for the Study",
+    RFSTDTC  = "Subject Reference Start Date/Time",
+    RFENDTC  = "Subject Reference End Date/Time",
     RFXSTDTC = "Date/Time of First Study Treatment",
     RFXENDTC = "Date/Time of Last Study Treatment",
-    RFICDTC = "Date/Time of Informed Consent",
+    RFICDTC  = "Date/Time of Informed Consent",
     RFPENDTC = "Date/Time of End of Participation",
-    DTHDTC = "Date/Time of Death",
-    DTHFL = "Subject Death Flag",
-    SITEID = "Study Site Identifier",
-    INVID = "Investigator Identifier",
-    INVNAM = "Investigator Name",
-    BRTHDTC = "Date/Time of Birth",
-    AGE = "Age",
-    AGEU = "Age Units",
-    SEX = "Sex",
-    RACE = "Race",
-    ETHNIC = "Ethnicity",
-    ARMCD = "Planned Arm Code",
-    ARM = "Description of Planned Arm",
+    DTHDTC   = "Date/Time of Death",
+    DTHFL    = "Subject Death Flag",
+    SITEID   = "Study Site Identifier",
+    INVID    = "Investigator Identifier",
+    INVNAM   = "Investigator Name",
+    BRTHDTC  = "Date/Time of Birth",
+    AGE      = "Age",
+    AGEU     = "Age Units",
+    SEX      = "Sex",
+    RACE     = "Race",
+    ETHNIC   = "Ethnicity",
+    ARMCD    = "Planned Arm Code",
+    ARM      = "Description of Planned Arm",
     ACTARMCD = "Actual Arm Code",
-    ACTARM = "Description of Actual Arm",
-    COUNTRY = "Country",
-    DMDTC = "Date/Time of Collection",
-    DMDY = "Study Day of Collection"
+    ACTARM   = "Description of Actual Arm",
+    COUNTRY  = "Country",
+    DMDTC    = "Date/Time of Collection",
+    DMDY     = "Study Day of Collection"
   )
-
   apply_metadata(dm, metadata)
 }
-
 #' Get Arms for Study
 #'
 #' @description
@@ -235,14 +233,13 @@ rdm <- function(n_patients = 400,
 #' @export
 get_study_arms <- function(type = c("standard", "dose_escalation", "factorial")) {
   type <- match.arg(type)
-
   switch(type,
          standard = list(
-           list(code = "PBO", description = "Placebo"),
+           list(code = "PLA", description = "Placebo (PLA)"),
            list(code = "TRT", description = "Treatment")
          ),
          dose_escalation = list(
-           list(code = "PBO", description = "Placebo"),
+           list(code = "PLA", description = "Placebo (PLA)"),
            list(code = "TRT10", description = "Treatment 10mg"),
            list(code = "TRT25", description = "Treatment 25mg"),
            list(code = "TRT50", description = "Treatment 50mg"),
@@ -252,7 +249,20 @@ get_study_arms <- function(type = c("standard", "dose_escalation", "factorial"))
            list(code = "A", description = "Drug A"),
            list(code = "B", description = "Drug B"),
            list(code = "AB", description = "Drug A + Drug B"),
-           list(code = "PBO", description = "Placebo")
+           list(code = "PLA", description = "Placebo (PLA)")
          )
   )
 }
+
+
+library(tibble)
+library(lubridate)
+library(checkmate)
+library(dplyr)
+
+
+dm <- rdm(n_patients = 79, seed = 2025)
+print(head(dm))
+write.csv(dm, "synthetic_dm.csv", row.names = FALSE)
+
+
