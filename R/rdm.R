@@ -230,8 +230,6 @@ rdm <- function(n_patients = 400,
   return(dm)
 }
 
-dm <- rdm(n_patients = 79, seed = 2025)
-print(head(dm))
-write.csv(dm, "synthetic_dm.csv", row.names = FALSE)
+dm <- rdm(n_patients = 79)
 
 

@@ -3,9 +3,13 @@ library(tidyr)
 library(purrr)
 library(checkmate)
 library(rlang)
+library(tibble)
+library(lubridate)
+library(stringr)
 
 # Global requirement
 studyid <- "AD2025"
+set.seed(2025)
 
 apply_metadata <- function(data, metadata) {
   checkmate::assert_data_frame(data)

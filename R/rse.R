@@ -1,81 +1,107 @@
-library(dplyr)
-library(lubridate)
+# R/se.R
+#' Create Subject Elements (SE) Dataset from DM and TE
+#'
+#' @description
+#' Dynamically generates an SDTM-compliant SE dataset using subject-level data from DM and element structure from TE.
+#' Each subject's SE records are derived based on the TE sequence and planned durations.
+#'
+#' @param dm A data.frame representing the DM dataset, ideally from `rdm()`
+#' @param te A data.frame representing the TE dataset, ideally from `rte()`
+#'
+#' @return A data.frame with SDTM SE structure
+#' @export
+#'
+#' @examples
+#' dm <- rdm(n_patients = 100, seed = 2025)
+#' rte(etcd = c("SCR", "TRT", "FUP"),
+#'     element = c("Screening", "Treatment", "Follow-up"),
+#'     testrl = c("First visit", "First dose", "End of treatment"),
+#'     teenrl = c("First dose", "End of treatment", "End of study"),
+#'     tedur = c("14 days", "10 weeks", "4 weeks"))
+#' se <- create_se(dm, te)
+#' head(se)
 
-set.seed(2025)
+create_se <- function(dm, te) {
+  # Validate inputs
+  assert_data_frame(dm)
+  assert_data_frame(te)
 
-# Load DM dataset
-dm <- read.csv("synthetic_dm.csv") %>%
-  filter(!is.na(RFXSTDTC) & !is.na(RFXENDTC)) %>%
-  mutate(RFXSTDTC = ymd(RFXSTDTC),
-         RFXENDTC = ymd(RFXENDTC))
+  # Ensure RFXSTDTC is in Date format
+  dm_se <- dm %>%
+    filter(!is.na(RFXSTDTC)) %>%
+    mutate(RFXSTDTC = ymd(RFXSTDTC))
 
-# Generate SE dataset using SAP logic
-se <- dm %>%
-  rowwise() %>%
-  do({
-    usubjid <- .$USUBJID
-    studyid <- .$STUDYID
-    rfxstdtc <- .$RFXSTDTC
-    rfxendtc <- .$RFXENDTC
-
-    # Define element periods
-    screening_start <- rfxstdtc - days(14)
-    screening_end   <- rfxstdtc
-
-    treatment_start <- rfxstdtc
-    treatment_end   <- rfxstdtc + days(70)
-
-    followup_start  <- rfxendtc
-    followup_end    <- rfxendtc + days(28)
-
-    # Calculate study days relative to RFXSTDTC
-    sestdy <- c(-14, 0, as.integer(difftime(followup_start, rfxstdtc, units = "days")))
-    seendy <- c(0, 70, as.integer(difftime(followup_end, rfxstdtc, units = "days")))
-
-    data.frame(
-      STUDYID  = studyid,
-      DOMAIN   = "SE",
-      USUBJID  = usubjid,
-      SESEQ    = 1:3,
-      ETCD     = c("SCR", "TRT", "FUP"),
-      ELEMENT  = c("Screening", "Treatment", "Follow-Up"),
-      SESTDTC  = format(c(screening_start, treatment_start, followup_start), "%Y-%m-%d"),
-      SEENDTC  = format(c(screening_end, treatment_end, followup_end), "%Y-%m-%d"),
-      TAETORD  = 1:3,
-      EPOCH    = c("Screening", "Treatment", "Follow-Up"),
-      SEUPDES  = "",
-      SESTDY   = sestdy,
-      SEENDY   = seendy
+  # Convert TEDUR to numeric duration in days
+  te_se <- te %>%
+    mutate(
+      DURATION_DAYS = case_when(
+        grepl("day", TEDUR, ignore.case = TRUE) ~ as.numeric(str_extract(TEDUR, "\\d+")),
+        grepl("week", TEDUR, ignore.case = TRUE) ~ as.numeric(str_extract(TEDUR, "\\d+")) * 7,
+        grepl("month", TEDUR, ignore.case = TRUE) ~ as.numeric(str_extract(TEDUR, "\\d+")) * 30,
+        TRUE ~ NA_real_
+      )
     )
-  }) %>%
-  ungroup()
 
-# Apply metadata labels
-se <- apply_metadata(se, list(
-  STUDYID  = "Study Identifier",
-  DOMAIN   = "Domain Abbreviation",
-  USUBJID  = "Unique Subject Identifier",
-  SESEQ    = "Sequence Number",
-  ETCD     = "Element Code",
-  ELEMENT  = "Description of Element",
-  SESTDTC  = "Start Date/Time of Element",
-  SEENDTC  = "End Date/Time of Element",
-  TAETORD  = "Planned Order of Element within Arm",
-  EPOCH    = "Epoch",
-  SEUPDES  = "Description of Unplanned Element",
-  SESTDY   = "Study Day of Start of Observation",
-  SEENDY   = "Study Day of End of Observation"
-))
+  # Generate SE records dynamically
+  rse <- dm_se %>%
+    rowwise() %>%
+    do({
+      subj <- .
+      start_date <- subj$RFXSTDTC
+      se_records <- list()
 
-# Ensure SESEQ is correctly mapped using your seqnum() function
-se <- seqnum(se, sort = c("USUBJID", "SESTDTC"))
+      for (i in seq_len(nrow(te_se))) {
+        element <- te_se[i, ]
+        end_date <- start_date + days(element$DURATION_DAYS)
 
-# Optionally re-map EPOCH using your epoch() function (if SESTDTC overlaps with other elements)
-# se <- epoch(se, dtc = "SESTDTC")
+        se_records[[i]] <- data.frame(
+          STUDYID  = subj$STUDYID,
+          DOMAIN   = "SE",
+          USUBJID  = subj$USUBJID,
+          SESEQ    = i,
+          ETCD     = element$ETCD,
+          ELEMENT  = element$ELEMENT,
+          SESTDTC  = format(start_date, "%Y-%m-%d"),
+          SEENDTC  = format(end_date, "%Y-%m-%d"),
+          TAETORD  = i,
+          EPOCH    = element$ELEMENT,
+          SEUPDES  = "",
+          SESTDY   = as.integer(difftime(start_date, subj$RFXSTDTC, units = "days")),
+          SEENDY   = as.integer(difftime(end_date, subj$RFXSTDTC, units = "days"))
+        )
 
-# Output
-print(head(se))
-write.csv(se, "synthetic_se.csv", row.names = FALSE)
+        start_date <- end_date + days(1)  # next element starts the day after
+      }
+
+      bind_rows(se_records)
+    }) %>%
+    ungroup()
+
+  # Apply metadata
+  rse <- apply_metadata(se, list(
+    STUDYID  = "Study Identifier",
+    DOMAIN   = "Domain Abbreviation",
+    USUBJID  = "Unique Subject Identifier",
+    SESEQ    = "Sequence Number",
+    ETCD     = "Element Code",
+    ELEMENT  = "Description of Element",
+    SESTDTC  = "Start Date/Time of Element",
+    SEENDTC  = "End Date/Time of Element",
+    TAETORD  = "Planned Order of Element within Arm",
+    EPOCH    = "Epoch",
+    SEUPDES  = "Description of Unplanned Element",
+    SESTDY   = "Study Day of Start of Observation",
+    SEENDY   = "Study Day of End of Observation"
+  ))
+
+  # Assign sequence numbers
+  rse <- seqnum(se, sort = c("USUBJID", "SESTDTC"))
+
+  return(rse)
+}
+
+# Call the function to create the dataset
+se <- create_se(dm, te)
 
 
 
