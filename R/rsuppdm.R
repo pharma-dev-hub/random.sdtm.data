@@ -14,14 +14,13 @@
 #' @export
 #'
 #' @examples
-#' dm <- rdm(n_patients = 100, seed = 2025)
-#' suppdm <- create_suppdm_bmi(dm)
-#' head(suppdm)
+#' suppdm <- r_suppdm(dm)
 
-create_suppdm_bmi <- function(dm,
-                              height_range = c(150, 190),
-                              weight_range = c(50, 120),
-                              seed = NULL) {
+
+r_suppdm <- function(dm,
+                     height_range = c(150, 190),
+                     weight_range = c(50, 120),
+                     seed = NULL) {
   assert_data_frame(dm)
   assert_numeric(height_range, len = 2)
   assert_numeric(weight_range, len = 2)
@@ -71,5 +70,5 @@ create_suppdm_bmi <- function(dm,
   return(suppdm)
 }
 
-
+suppdm <- r_suppdm(dm)
 

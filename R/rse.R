@@ -18,10 +18,10 @@
 #'     testrl = c("First visit", "First dose", "End of treatment"),
 #'     teenrl = c("First dose", "End of treatment", "End of study"),
 #'     tedur = c("14 days", "10 weeks", "4 weeks"))
-#' se <- create_se(dm, te)
+#' se <- rse(dm, te)
 #' head(se)
 
-create_se <- function(dm, te) {
+rse <- function(dm, te) {
   # Validate inputs
   assert_data_frame(dm)
   assert_data_frame(te)
@@ -43,7 +43,7 @@ create_se <- function(dm, te) {
     )
 
   # Generate SE records dynamically
-  rse <- dm_se %>%
+  se <- dm_se %>%
     rowwise() %>%
     do({
       subj <- .
@@ -78,7 +78,7 @@ create_se <- function(dm, te) {
     ungroup()
 
   # Apply metadata
-  rse <- apply_metadata(se, list(
+  se <- apply_metadata(se, list(
     STUDYID  = "Study Identifier",
     DOMAIN   = "Domain Abbreviation",
     USUBJID  = "Unique Subject Identifier",
@@ -95,13 +95,13 @@ create_se <- function(dm, te) {
   ))
 
   # Assign sequence numbers
-  rse <- seqnum(se, sort = c("USUBJID", "SESTDTC"))
+  se <- seqnum(se, sort = c("USUBJID", "SESTDTC"))
 
-  return(rse)
+  return(se)
 }
 
 # Call the function to create the dataset
-se <- create_se(dm, te)
+se <- rse(dm, te)
 
 
 

@@ -14,9 +14,9 @@
 #' @export
 #'
 #' @examples
-#' sv <- create_sv(dm, tv)
+#' sv <- rsv(dm, tv)
 
-create_sv <- function(dm, tv, add_unscheduled = TRUE, unsched_n = 10) {
+rsv <- function(dm, tv, add_unscheduled = TRUE, unsched_n = 10) {
   assert_data_frame(dm)
   assert_data_frame(tv)
 
@@ -106,4 +106,4 @@ create_sv <- function(dm, tv, add_unscheduled = TRUE, unsched_n = 10) {
 }
 
 # Call the function to create the dataset
-sv <- create_sv(dm, tv)
+sv <- rsv(dm, tv)
