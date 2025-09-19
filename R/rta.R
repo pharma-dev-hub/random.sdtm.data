@@ -79,7 +79,7 @@ rta <- function(domain = "TA",
 
   # Check if input for TAETORD is provided with numeric values
   if (!is.numeric(taetord)) {
-    stop("Error: TAETORD should be provided wirh numeric values")
+    stop("Error: TAETORD should be provided with numeric values")
   }
 
   # Checking if necessary inputs are provided for TABRANCH
