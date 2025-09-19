@@ -138,7 +138,7 @@ rts <- function(domain = "TS",
 
   # Check if input for RANDQT is provided with numeric values
   if (!is.numeric(randqt)) {
-    stop("Error: RANDQT should be provided wirh numeric values")
+    stop("Error: RANDQT should be provided with numeric values")
   }
 
   # RANDQT values should be between 0 and 1

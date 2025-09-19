@@ -58,12 +58,12 @@ rtv <- function(domain ="TV",
 
   # Check if input for VISITNUM is provided with numeric values
   if (!is.numeric(visitnum)) {
-    stop("Error: VISITNUM should be provided wirh numeric values")
+    stop("Error: VISITNUM should be provided with numeric values")
   }
 
   # Check if input for VISITDY is provided with numeric values
   if (length(visitdy) > 0 & !is.numeric(visitdy)) {
-    stop("Error: VISITDY should be provided wirh numeric values")
+    stop("Error: VISITDY should be provided with numeric values")
   }
 
   # No. of Visit/Visitnum provided should be matched
