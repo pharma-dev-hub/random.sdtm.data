@@ -5,6 +5,7 @@
 #' Creates a random SDTM VS (Vital Signs) dataset following CDISC SDTM standards.
 #' Findings. One record per vital sign measurement per time point per visit per subject, Tabulation.
 #' Function is designed to create values for only the following Tests: Weight, Height, Body Mass Index, Temperature, Heart Rate, Pulse Rate, Respiratory Rate, Diastolic Blood Pressure, Systolic Blood Pressure.
+#' For the given testcd, visit information from sv dataset would be used.
 #' The following Permissible variables have NOT been mapped within the rvs function: VSSPID, VSBLFL, VSDRVFL, VSTOX, VSTOXGR, VSCLSIG, VISITDY, TAETORD, VSELTM, VSTPTREF, VSRFTDTC.
 #' Dependency datasets: dm, se, sv
 #'

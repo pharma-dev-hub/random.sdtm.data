@@ -5,6 +5,7 @@
 #' Creates a random SDTM PR (Procedures) dataset following CDISC SDTM standards.
 #' Interventions. One record per recorded procedure per occurrence per subject, Tabulation.
 #' The following Permissible variables have NOT been mapped within the rpr function: PRGRPID, PRSPID, PRLNKID, PRLNKGRP, PRINDC, PRDOSRGM, PRDIR, PRPORTOT, VISITDY, TAETORD, PRDUR, PRTPT, PRTPTNUM, PRELTM, PRTPTREF, PRRFTDTC, PRSTRTPT, PRSTTPT, PRENRTPT, PRENTPT.
+#' For the given trt, visn values would be marched with data in sv dataset and necessary information from sv would be used.
 #' Dependency datasets: dm, se, sv
 #'
 #' @param domain By default, value has been set as "PR", user can modify it if needed but not recommended

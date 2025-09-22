@@ -5,6 +5,7 @@
 #' Creates a random SDTM EG (ECG Test Results) dataset following CDISC SDTM standards.
 #' Findings. One record per ECG observation per replicate per time point or one record per ECG observation per beat per visit per subject, Tabulation.
 #' Function is designed to create values for only the following Tests: "ECG Mean Heart Rate", "Interpretation", "PR Interval, Aggregate", "QRS Duration, Aggregate", "QT Interval, Aggregate", "QTca Interval, Aggregate", "QTcB Interval, Aggregate", "QTcF Interval, Aggregate", "RR Interval, Aggregate".
+#' For the given testcd, visit information from sv dataset would be used.
 #' The following Permissible variables have NOT been mapped within the reg function: SPDEVID, EGREFID, EGSPID, EGBEATNO, EGXFN, EGNAM, EGMETHOD, EGLEAD, EGBLFL, EGDRVFL, EGEVAL, EGEVALID, EGCLSIG, EGREPNUM, VISITDY, TAETORD, EGELTM, EGTPTREF, EGRFTDTC.
 #' Dependency datasets: dm, se, sv
 #'
