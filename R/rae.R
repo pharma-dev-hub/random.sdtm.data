@@ -6,6 +6,8 @@
 #'
 #' @param dm A data.frame representing the DM dataset
 #' @param se A data.frame representing the SE dataset
+#' @param seed Optional random seed for reproducibility
+#' @param aeout_probs Named vector of probabilities for AEOUT values (default: c("RECOVERED" = 0.45, "ONGOING" = 0.45, "DEATH" = 0.10))
 #'
 #' @return A data.frame with SDTM AE structure
 #' @export
@@ -15,13 +17,13 @@
 #' se <- rse(dm, te)
 #' ae <- rae(dm, se)
 
-
-rae <- function(dm, se, seed = NULL) {
+rae <- function(dm, se, seed = NULL,
+                aeout_probs = c("RECOVERED" = 0.475, "ONGOING" = 0.475, "DEATH" = 0.05)) {
 
   if (!is.null(seed)) set.seed(seed)
 
   # AE terms and coding hierarchy
-  ae_terms <- tibble(
+  ae_terms <- tibble::tibble(
     AETERM   = c("Headache", "Nausea", "Rash", "Fatigue", "Injection site pain"),
     AEDECOD  = c("HEADACHE", "NAUSEA", "RASH", "FATIGUE", "INJECTION SITE PAIN"),
     AESOC    = c("Nervous system disorders", "Gastrointestinal disorders", "Skin disorders", "General disorders", "General disorders"),
@@ -38,14 +40,19 @@ rae <- function(dm, se, seed = NULL) {
 
   dm_ae <- dm %>% mutate(RFSTDTC = as.Date(RFSTDTC))
 
-  # Select 20% of subjects to have AEs
-  ae_subjects <- dm_ae %>% sample_frac(0.2)
+  # Select 20% of subjects and assign random AE counts
+  ae_subjects <- dm_ae %>%
+    sample_frac(0.2) %>%
+    rowwise() %>%
+    mutate(n_ae = sample(1:5, 1)) %>%
+    ungroup()
 
-  # Generate AE records
+  # Expand rows based on n_ae
   ae <- ae_subjects %>%
-    slice(rep(1:n(), each = sample(1:3, 1))) %>%
+    slice(rep(1:n(), ae_subjects$n_ae)) %>%
     group_by(USUBJID) %>%
     mutate(
+      AESEQ = row_number(),
       TERM_INDEX = sample(1:nrow(ae_terms), n(), replace = TRUE),
       AETERM     = ae_terms$AETERM[TERM_INDEX],
       AEMODIFY   = AETERM,
@@ -62,7 +69,7 @@ rae <- function(dm, se, seed = NULL) {
       AEBDSYCD   = ae_terms$AEBDSYCD[TERM_INDEX],
       AESEV      = sample(c("MILD", "MOD", "SEV"), n(), replace = TRUE),
       AESER      = sample(c("Y", "N"), n(), replace = TRUE, prob = c(0.1, 0.9)),
-      AEOUT      = sample(c("RECOVERED", "ONGOING", "DEATH"), n(), replace = TRUE),
+      AEOUT      = sample(names(aeout_probs), n(), replace = TRUE, prob = aeout_probs),
       AEACN      = sample(c("NONE", "DOSE REDUCED", "DRUG WITHDRAWN"), n(), replace = TRUE),
       AEACNOTH   = NA,
       AEREL      = sample(c("RELATED", "NOT RELATED"), n(), replace = TRUE),
@@ -78,6 +85,14 @@ rae <- function(dm, se, seed = NULL) {
       STUDYID    = STUDYID[1],
       AESPID     = NA
     ) %>%
+    arrange(USUBJID, AESTDTC) %>%
+    group_by(USUBJID) %>%
+    mutate(
+      death_flag = AEOUT == "DEATH",
+      death_event = cumsum(death_flag),
+      keep = death_event <= 1
+    ) %>%
+    filter(keep) %>%
     ungroup()
 
   # Assign EPOCH and AESEQ
