@@ -13,7 +13,7 @@
 #' @param visn VISITNUM values for each TRT value (optional). If you need more than one VISITNUM per TRT, then it should be separated by comma within quotes, ex: c("1, 2, 3") - this will be considered as three VISITNUM values for the first TRT value. If NA values or no values provided for VISN parameter, minimum VISITNUM from tv dataset would be auto-populated.
 #' @param cat Values to be mapped under PRCAT variable (optional)
 #' @param scat Values to be mapped under PRSCAT variable (optional)
-#' @param presp Values to be mapped under PRPRESP variable (optional)
+#' @param presp Values to be mapped under PRPRESP variable (optional) - The allowed input values are: N, NA, U, Y.
 #' @param dose Numeric vector - Values to be mapped under PRDOSE variable (optional)
 #' @param dostxt Values to be mapped under PRDOSTXT variable (optional)
 #' @param dosu Values to be mapped under PRDOSU variable (optional)
@@ -23,9 +23,9 @@
 #' @param loc Values to be mapped under PRLOC variable (optional)
 #' @param lat Values to be mapped under PRLAT variable (optional)
 #' @param sort_seq Sorting sequence to be used for PRSEQ mapping. Default value is given as c("STUDYID", "USUBJID", "PRTRT", "PRDECOD", "PRSTDTC", "PRENDTC"), user can modify if required.
-#' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be listed in UPPERCASE
+#' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be in UPPERCASE
 #'
-#' @return
+#' @return A data.frame with SDTM PR structure
 #' @export
 #'
 #' @examples

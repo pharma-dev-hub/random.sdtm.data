@@ -20,7 +20,7 @@
 #' @param pos Values to be mapped under EGPOS variable (optional)
 #' @param grpid Values to be mapped under EGGRPID variable (optional) - Expected format: TESTCD|VAR1|VAR2|...|VARn. Each value must be separated by a pipe (|). TESTCD values should match respective input. The values under VAR1, VAR2, … VARn would be concatenated separated by a hyphen (-). If same TESTCD value is given as input as more than once, the values for the TESTCDs will be duplicated when each time same TESTCD is added.
 #' @param sort_seq Sorting sequence to be used for EGSEQ mapping. Default value is given as c("STUDYID", "USUBJID", "VISITNUM", "EGTESTCD", "EGTEST", "EGDTC", "EGTPTNUM"), user can modify if required.
-#' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be listed in UPPERCASE
+#' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be in UPPERCASE
 #'
 #' @return A data.frame with SDTM EG structure
 #' @export

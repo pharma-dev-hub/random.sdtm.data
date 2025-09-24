@@ -14,7 +14,7 @@
 #' @param tabranch Values to be mapped under TABRANCH  variable (optional) - Expected format: ARMCD|TAETORD|TABRANCH text. Each value must be separated by a pipe (|). ARMCD and TAETORD values should match respective inputs.
 #' @param tatrans Values to be mapped under TATRANS  variable (optional) - Expected format: ARMCD|TAETORD|TATRANS text. Each value must be separated by a pipe (|). ARMCD and TAETORD values should match respective inputs.
 #' @param epoch Values to be mapped under EPOCH  variable
-#' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be listed in UPPERCASE
+#' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be in UPPERCASE
 #'
 #' @return A data.frame with SDTM TA structure
 #' @export

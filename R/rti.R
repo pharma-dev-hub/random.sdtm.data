@@ -12,7 +12,7 @@
 #' @param iescat Values to be mapped under IESCAT variable (optional)
 #' @param tirl Values to be mapped under TIRL variable (optional) - Expected format: IETESTCD|TIRL text. Each value must be separated by a pipe (|). IETESTCD values should match respective input.
 #' @param tivers Values to be mapped under TIVERS variable (optional) -  Instead of duplicating values like: tivers = c("1.0", "1.0", "1.0", "1.0", "1.0", "2.0", "2.0", "2.0", "2.0", "2.0"), can use the following format as well: tivers = c(rep("1.0", 5), rep("2.0", 5)).
-#' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be listed in UPPERCASE
+#' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be in UPPERCASE
 #'
 #' @return A data.frame with SDTM TI structure
 #' @export

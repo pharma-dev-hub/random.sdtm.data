@@ -11,7 +11,7 @@
 #' @param testrl Values to be mapped under TESTRL variable
 #' @param teenrl Values to be mapped under TEENRL variable (optional) - If TEENRL is included, add NA values in the input vector if any of the ELEMENT doesn't require TEENRL.
 #' @param tedur Values to be mapped under TEDUR variable (optional) - If TEDUR is included, add NA values in the input vector if any of the ELEMENT doesn't require TEDUR.
-#' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be listed in UPPERCASE
+#' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be in UPPERCASE
 #'
 #' @return A data.frame with SDTM TE structure
 #' @export

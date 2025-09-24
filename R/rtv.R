@@ -13,7 +13,7 @@
 #' @param arm Values to be mapped under ARM variable (optional)
 #' @param tvstrl Values to be mapped under TVSTRL variable
 #' @param tvenrl Values to be mapped under TVENRL variable (optional)
-#' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be listed in UPPERCASE
+#' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be in UPPERCASE
 #'
 #' @return A data.frame with SDTM TV structure
 #' @export
