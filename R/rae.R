@@ -22,21 +22,21 @@ rae <- function(dm, se, seed = NULL,
 
   if (!is.null(seed)) set.seed(seed)
 
-  # AE terms and coding hierarchy
-  ae_terms <- tibble::tibble(
-    AETERM   = c("Headache", "Nausea", "Rash", "Fatigue", "Injection site pain"),
-    AEDECOD  = c("HEADACHE", "NAUSEA", "RASH", "FATIGUE", "INJECTION SITE PAIN"),
-    AESOC    = c("Nervous system disorders", "Gastrointestinal disorders", "Skin disorders", "General disorders", "General disorders"),
-    AEHLT    = c("Headaches", "GI symptoms", "Skin reactions", "Fatigue symptoms", "Injection site reactions"),
-    AEHLGT   = c("Neurological symptoms", "GI disorders", "Dermatologic conditions", "General symptoms", "Injection reactions"),
-    AELLT    = c("Tension headache", "Mild nausea", "Contact rash", "Exhaustion", "Localized pain"),
-    AEPTCD   = 1001:1005,
-    AELLTCD  = 2001:2005,
-    AEHLTCD  = 3001:3005,
-    AEHLGTCD = 4001:4005,
-    AESOCCD  = 5001:5005,
-    AEBDSYCD = 6001:6005
-  )
+  # # AE terms and coding hierarchy
+  # ae_terms <- tibble::tibble(
+  #   AETERM   = c("Headache", "Nausea", "Rash", "Fatigue", "Injection site pain"),
+  #   AEDECOD  = c("HEADACHE", "NAUSEA", "RASH", "FATIGUE", "INJECTION SITE PAIN"),
+  #   AESOC    = c("Nervous system disorders", "Gastrointestinal disorders", "Skin disorders", "General disorders", "General disorders"),
+  #   AEHLT    = c("Headaches", "GI symptoms", "Skin reactions", "Fatigue symptoms", "Injection site reactions"),
+  #   AEHLGT   = c("Neurological symptoms", "GI disorders", "Dermatologic conditions", "General symptoms", "Injection reactions"),
+  #   AELLT    = c("Tension headache", "Mild nausea", "Contact rash", "Exhaustion", "Localized pain"),
+  #   AEPTCD   = 1001:1005,
+  #   AELLTCD  = 2001:2005,
+  #   AEHLTCD  = 3001:3005,
+  #   AEHLGTCD = 4001:4005,
+  #   AESOCCD  = 5001:5005,
+  #   AEBDSYCD = 6001:6005
+  # )
 
   dm_ae <- dm %>% mutate(RFSTDTC = as.Date(RFSTDTC))
 
