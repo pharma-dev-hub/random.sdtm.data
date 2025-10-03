@@ -63,6 +63,11 @@ rti <- function(domain = "TI",
     stop("Error: No. of IETESTCD and IECAT provided not matched")
   }
 
+  # Checking if IECAT is provided with allowed values
+  if (!missing(iecat) & !all(iecat %in% c("EXCLUSION", "INCLUSION"))) {
+    stop("Error: Invalid input for iecat. The allowed values are: EXCLUSION, INCLUSION")
+  }
+
   # If IESCAT parameter included, then No. of IETESTCD/IESCAT provided should be matched
   if (length(iescat) > 0 & length(iescat) != length(ietestcd)) {
     stop("Error: No. of IETESTCD and IESCAT provided not matched. Add NA values if any of the IETESTCD doesn't require IESCAT.")
