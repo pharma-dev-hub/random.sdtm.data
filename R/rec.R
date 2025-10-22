@@ -1,82 +1,90 @@
-# R/rex.R
-#' Create Random Exposure (EX) Dataset
+# R/rec.R
+#' Create Random Exposure as Collected (EC) Dataset
 #'
 #' @description
-#' Creates a random SDTM EX (Exposure) dataset following CDISC SDTM standards.
-#' Interventions. One record per protocol-specified study treatment, constant-dosing interval, per subject, Tabulation.
-#' For each subjects, ACTARM values from DM would be mapped as EXTRT.
-#' The following Permissible variables have NOT been mapped within the rex function: EXGRPID, EXREFID, EXSPID, EXLNKID, EXLNKGRP, EXCAT, EXSCAT, EXDOSTXT, EXDOSRGM, EXLOT, EXLOC, EXLAT, EXDIR, EXFAST, EXADJ, TAETORD, EXDUR, EXTPT, EXTPTNUM, EXELTM, EXTPTREF, EXRFTDTC.
+#' Creates a random SDTM EC (Exposure as Collected) dataset following CDISC SDTM standards.
+#' Interventions. One record per protocol-specified study treatment, collected-dosing interval, per subject, per mood, Tabulation.
+#' For each subjects, ACTARM values from DM would be mapped as ECTRT.
+#' The following Permissible variables have NOT been mapped within the rec function: ECGRPID, ECREFID, ECSPID, ECLNKGRP, ECCAT, ECSCAT, ECREASOC, ECDOSTXT, ECDOSTOT, ECDOSRGM, ECLOT, ECLOC, ECLAT, ECDIR, ECPORTOT, ECFAST, ECPSTRG, ECPSTRGU, ECADJ, TAETORD, ECDUR, ECTPT, ECTPTNUM, ECELTM, ECTPTREF, ECRFTDTC
 #' Dependency datasets: dm, se
 #'
-#' @param domain By default, value has been set as "EX", user can modify it if needed but not recommended
+#' @param domain By default, value has been set as "EC", user can modify it if needed but not recommended
 #' @param n_dose No. of doses for each ARM. Input values should be given along with ARMCD value. Expected format: ARMCD|No. of Dose. If no inputs are given, No. of Dose will be 1 by default.
 #' @param dose Dose value for each ARM and its repeated administration. Input values should be given along with ARMCD value. Expected format: ARMCD|Dose values separated by comma. Example: "PLA|100, 150, 200" - If "PLA" ARM has three different doses planned. If no inputs are given, Dose will be 100 by default.
 #' @param dosu Dose Unit value for each ARM and its repeated administration. Input values should be given along with ARMCD value. Expected format: ARMCD|Dose Unit values separated by comma. Example: "PLA|mg, g, mg/kg" - If "PLA" ARM has three different doses planned. If no inputs are given, Dose Unit will be "mg" by default.
 #' @param dosfrm Dose Form value for each ARM and its repeated administration. Input values should be given along with ARMCD value. Expected format: ARMCD|Dose Form values separated by comma. Example: "PLA|TABLET, TABLET, CAPSULE" - If "PLA" ARM has three different doses planned. If no inputs are given, Dose Form will be "TABLET" by default.
 #' @param dosfrq Dose Frequency value for each ARM and its repeated administration. Input values should be given along with ARMCD value. Expected format: ARMCD|Dose Frequency values separated by comma. Example: "PLA|ONCE, ONCE, TWICE" - If "PLA" ARM has three different doses planned. If no inputs are given, Dose Frequency will be "ONCE" by default.
 #' @param route Dose Route value for each ARM and its repeated administration. Input values should be given along with ARMCD value. Expected format: ARMCD|Dose Route values separated by comma. Example: "PLA|ORAL, ORAL, DIETARY" - If "PLA" ARM has three different doses planned. If no inputs are given, Dose Route will be "ORAL" by default.
-#' @param sort_seq Sorting sequence to be used for EXSEQ mapping. Default value is given as c("STUDYID", "USUBJID", "EXTRT", "EXSTDTC", "EXENDTC"), user can modify if required.
+#' @param sort_seq Sorting sequence to be used for ECSEQ mapping. Default value is given as c("STUDYID", "USUBJID", "ECTRT", "desc(ECMOOD)", "ECSTDTC", "ECENDTC"), user can modify if required.
 #' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be in UPPERCASE
 #'
-#' @return A data.frame with SDTM EX structure
+#' @return A data.frame with SDTM EC structure
 #' @export
 #'
 #' @examples
-#' rex()
+#' rec()
 #'
-#' rex(n_dose = c("PLA|2", "DER|4"),
+#' rec(n_dose = c("PLA|2", "DER|4"),
 #'     dose = c("ADA", "PLA|600", "DER|100, 150, 200, 400"),
 #'     dosu = c("ADA", "PLA|mg", "DER|ml, mg/kg, mL, g"))
 #'
 
-rex <- function(domain = "EX",
+rec <- function(domain = "EC",
                 n_dose = c(),
                 dose = c(),
                 dosu = c(),
                 dosfrm = c(),
                 dosfrq = c(),
                 route = c(),
-                sort_seq = c("STUDYID", "USUBJID", "EXTRT", "EXSTDTC", "EXENDTC"),
+                sort_seq = c("STUDYID", "USUBJID", "ECTRT", "desc(ECMOOD)", "ECSTDTC", "ECENDTC"),
                 drop_vars = c()) {
 
-  # Metadata for the EX dataset
-  ex_metadata <- list("STUDYID" = "Study Identifier",
+  # Metadata for the EC dataset
+  ec_metadata <- list("STUDYID" = "Study Identifier",
                       "DOMAIN" = "Domain Abbreviation",
                       "USUBJID" = "Unique Subject Identifier",
-                      "EXSEQ" = "Sequence Number",
-                      "EXGRPID" = "Group ID",
-                      "EXREFID" = "Reference ID",
-                      "EXSPID" = "Sponsor-Defined Identifier",
-                      "EXLNKID" = "Link ID",
-                      "EXLNKGRP" = "Link Group ID",
-                      "EXTRT" = "Name of Treatment",
-                      "EXCAT" = "Category of Treatment",
-                      "EXSCAT" = "Subcategory of Treatment",
-                      "EXDOSE" = "Dose",
-                      "EXDOSTXT" = "Dose Description",
-                      "EXDOSU" = "Dose Units",
-                      "EXDOSFRM" = "Dose Form",
-                      "EXDOSFRQ" = "Dosing Frequency per Interval",
-                      "EXDOSRGM" = "Intended Dose Regimen",
-                      "EXROUTE" = "Route of Administration",
-                      "EXLOT" = "Lot Number",
-                      "EXLOC" = "Location of Dose Administration",
-                      "EXLAT" = "Laterality",
-                      "EXDIR" = "Directionality",
-                      "EXFAST" = "Fasting Status",
-                      "EXADJ" = "Reason for Dose Adjustment",
+                      "ECSEQ" = "Sequence Number",
+                      "ECGRPID" = "Group ID",
+                      "ECREFID" = "Reference ID",
+                      "ECSPID" = "Sponsor-Defined Identifier",
+                      "ECLNKID" = "Link ID",
+                      "ECLNKGRP" = "Link Group ID",
+                      "ECTRT" = "Name of Treatment",
+                      "ECMOOD" = "Mood",
+                      "ECCAT" = "Category of Treatment",
+                      "ECSCAT" = "Subcategory of Treatment",
+                      "ECPRESP" = "Pre-Specified",
+                      "ECOCCUR" = "Occurrence",
+                      "ECREASOC" = "Reason for Occur Value",
+                      "ECDOSE" = "Dose",
+                      "ECDOSTXT" = "Dose Description",
+                      "ECDOSU" = "Dose Units",
+                      "ECDOSFRM" = "Dose Form",
+                      "ECDOSFRQ" = "Dosing Frequency per Interval",
+                      "ECDOSTOT" = "Total Daily Dose",
+                      "ECDOSRGM" = "Intended Dose Regimen",
+                      "ECROUTE" = "Route of Administration",
+                      "ECLOT" = "Lot Number",
+                      "ECLOC" = "Location of Dose Administration",
+                      "ECLAT" = "Laterality",
+                      "ECDIR" = "Directionality",
+                      "ECPORTOT" = "Portion or Totality",
+                      "ECFAST" = "Fasting Status",
+                      "ECPSTRG" = "Pharmaceutical Strength",
+                      "ECPSTRGU" = "Pharmaceutical Strength Units",
+                      "ECADJ" = "Reason for Dose Adjustment",
                       "TAETORD" = "Planned Order of Element within Arm",
                       "EPOCH" = "Epoch",
-                      "EXSTDTC" = "Start Date/Time of Treatment",
-                      "EXENDTC" = "End Date/Time of Treatment",
-                      "EXSTDY" = "Study Day of Start of Treatment",
-                      "EXENDY" = "Study Day of End of Treatment",
-                      "EXDUR" = "Duration of Treatment",
-                      "EXTPT" = "Planned Time Point Name",
-                      "EXTPTNUM" = "Planned Time Point Number",
-                      "EXELTM" = "Planned Elapsed Time from Time Point Ref",
-                      "EXTPTREF" = "Time Point Reference",
-                      "EXRFTDTC" = "Date/Time of Reference Time Point")
+                      "ECSTDTC" = "Start Date/Time of Treatment",
+                      "ECENDTC" = "End Date/Time of Treatment",
+                      "ECSTDY" = "Study Day of Start of Treatment",
+                      "ECENDY" = "Study Day of End of Treatment",
+                      "ECDUR" = "Duration of Treatment",
+                      "ECTPT" = "Planned Time Point Name",
+                      "ECTPTNUM" = "Planned Time Point Number",
+                      "ECELTM" = "Planned Elapsed Time from Time Point Ref",
+                      "ECTPTREF" = "Time Point Reference",
+                      "ECRFTDTC" = "Date/Time of Reference Time Point")
 
   # Logic checks
   # Checking the availability of the dependent datasets
@@ -100,7 +108,7 @@ rex <- function(domain = "EX",
     dose_in = dose
     dose_df <- as.data.frame(dose_in) %>%
                mutate(ACTARMCD = sapply(strsplit(as.character(dose_in), "\\|"), "[", 1),
-                       dose = sapply(strsplit(as.character(dose_in), "\\|"), "[", 2))
+                      dose = sapply(strsplit(as.character(dose_in), "\\|"), "[", 2))
   } else {
     dose_df <- data.frame(ACTARMCD = character(0), dose = numeric(0))
   }
@@ -146,7 +154,7 @@ rex <- function(domain = "EX",
   }
 
   # Joining No.of Dose and Dose/Dosu value based on ACTARMCD to the DM subjects, Assigning default values
-  df1 <- left_join(dm %>% filter(ARMNRS != "SCREEN FAILURE" & !is.na(RFXSTDTC)) %>% select(USUBJID, RFXSTDTC, RFXENDTC, ACTARM, ACTARMCD), n_dose_df, by = c("ACTARMCD")) %>%
+  df1 <- left_join(dm %>% filter(ARMNRS != "SCREEN FAILURE") %>% select(USUBJID, RFXSTDTC, RFXENDTC, ACTARM, ACTARMCD), n_dose_df, by = c("ACTARMCD")) %>%
          left_join(dose_df, by = c("ACTARMCD")) %>%
          left_join(dosu_df, by = c("ACTARMCD")) %>%
          left_join(dosfrm_df, by = c("ACTARMCD")) %>%
@@ -197,46 +205,56 @@ rex <- function(domain = "EX",
                                   TRUE ~ route_vec)) %>%
          select(USUBJID, RFXSTDTC, RFXENDTC, ACTARM, ACTARMCD, dose, dosu, dosfrm, dosfrq, route)
 
-  # Mapping general variables
-  df3 <- df2 %>%
-         group_by(USUBJID) %>%
-         mutate(SEQ = row_number()) %>%
-         ungroup() %>%
+  # Scheduled records dataset
+  df_sch <- df2 %>%
+            mutate(ECMOOD = "SCHEDULED")
+
+  # Performed records dataset
+  df_per <- df2 %>%
+            group_by(USUBJID) %>%
+            mutate(SEQ = row_number()) %>%
+            ungroup() %>%
+            mutate(ECMOOD = "PERFORMED",
+                   ECPRESP = "Y",
+                   ECOCCUR = ifelse(!is.na(RFXSTDTC), "Y", "N"),
+                   ECSTDTC = as.Date(as.Date(RFXSTDTC) + (SEQ - 1)),
+                   ECENDTC = ECSTDTC)
+
+  # Combining Scheduled and Performed records and mapping general variables
+  df3 <- bind_rows(df_sch, df_per) %>%
          mutate(STUDYID = studyid,
                 DOMAIN = domain,
-                EXTRT = ACTARM,
-                EXDOSE = ifelse(!toupper(EXTRT) %in% c("PLACEBO"), dose, 0),
-                EXDOSU = dosu,
-                EXDOSFRM = dosfrm,
-                EXDOSFRQ = dosfrq,
-                EXROUTE = route,
-                EXSTDTC = as.Date(as.Date(RFXSTDTC) + (SEQ - 1)),
-                EXENDTC = EXSTDTC,
-                EXLNKID = paste0(USUBJID, "-", EXSTDTC))
+                ECTRT = ACTARM,
+                ECDOSE = if_else(ECOCCUR == "N", NA_real_, ifelse(!toupper(ECTRT) %in% c("PLACEBO"), dose, 0), missing = dose),
+                ECDOSU = if_else(ECOCCUR == "N", NA_character_, dosu, missing = dosu),
+                ECDOSFRM = if_else(ECOCCUR == "N", NA_character_, dosfrm, missing = dosfrm),
+                ECDOSFRQ = if_else(ECOCCUR == "N", NA_character_, dosfrq, missing = dosfrq),
+                ECROUTE = if_else(ECOCCUR == "N", NA_character_, route, missing = route),
+                ECLNKID = ifelse(ECMOOD == "PERFORMED", paste0(USUBJID, "-", ECSTDTC), NA))
 
   # Mapping EPOCH variable
-  df4 <- epoch(df = df3, dtc = "EXSTDTC")
+  df4 <- epoch(df = df3, dtc = "ECSTDTC")
 
   # Mapping --DY variable
-  df5 <- stdy(df = df4, dtc = "EXSTDTC")
-  df6 <- stdy(df = df5, dtc = "EXENDTC")
+  df5 <- stdy(df = df4, dtc = "ECSTDTC")
+  df6 <- stdy(df = df5, dtc = "ECENDTC")
 
   # Mapping SEQ variable
   df7 <- seqnum(df = df6, sort = sort_seq)
 
   # Keeping only the Necessary variables
   df8 <- df7 %>%
-         select(STUDYID, DOMAIN, USUBJID, EXSEQ, EXTRT, EXDOSE, EXDOSU, EXDOSFRM, EXDOSFRQ,
-                EXROUTE, EPOCH, EXSTDTC, EXENDTC, EXSTDY, EXENDY)
+         select(STUDYID, DOMAIN, USUBJID, ECSEQ, ECLNKID, ECTRT, ECMOOD, ECPRESP, ECOCCUR, ECDOSE,
+                ECDOSU, ECDOSFRM, ECDOSFRQ, ECROUTE, EPOCH, ECSTDTC, ECENDTC, ECSTDY, ECENDY)
 
   # Adding labels to the variables
-  df9 <- apply_metadata(df8, ex_metadata)
+  df9 <- apply_metadata(df8, ec_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
     df9 <- df9 %>% select(-all_of(drop_vars))
   }
 
-  # Final EX dataset
-  assign("ex", df9, envir = .GlobalEnv)
+  # Final EC dataset
+  assign("ec", df9, envir = .GlobalEnv)
 }
