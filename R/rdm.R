@@ -54,7 +54,7 @@ rdm <- function(n_patients = 400,
                   "NOT HISPANIC OR LATINO" = 0.80,
                   "NA" = 0.05
                 ),
-                seed = NULL,
+                seed = 1122,
                 na_prob = 0.05,
                 cached = FALSE) {
 
@@ -96,8 +96,8 @@ rdm <- function(n_patients = 400,
   )
 
   # Informed consent dates
-  dm$RFICDTC <- as.character(study_start - lubridate::days(sample(0:30, n_patients, replace = TRUE)))
-  dm$RFSTDTC <- as.character(lubridate::ymd(dm$RFICDTC) + lubridate::days(sample(1:7, n_patients, replace = TRUE)))
+  dm$RFICDTC <- as.character(study_start - lubridate::days(with_seed(seed, sample(0:30, n_patients, replace = TRUE))))
+  dm$RFSTDTC <- as.character(lubridate::ymd(dm$RFICDTC) + lubridate::days(with_seed(seed, sample(1:7, n_patients, replace = TRUE))))
   dm$RFXSTDTC <- dm$RFSTDTC
 
   # End dates
@@ -105,15 +105,15 @@ rdm <- function(n_patients = 400,
   dm$RFXENDTC <- NA_character_
   dm$RFPENDTC <- NA_character_
 
-  status <- sample(names(status_probs), n_patients, replace = TRUE, prob = status_probs)
+  status <- with_seed(seed, sample(names(status_probs), n_patients, replace = TRUE, prob = status_probs))
   for (i in seq_len(n_patients)) {
     if (status[i] == "completed") {
       end_date <- lubridate::ymd(dm$RFSTDTC[i]) + lubridate::days(study_duration_days)
       dm$RFENDTC[i] <- as.character(end_date)
       dm$RFXENDTC[i] <- as.character(end_date)
-      dm$RFPENDTC[i] <- as.character(end_date + lubridate::days(sample(0:7, 1)))
+      dm$RFPENDTC[i] <- as.character(end_date + lubridate::days(with_seed(seed, sample(0:7, 1))))
     } else if (status[i] == "discontinued") {
-      end_date <- lubridate::ymd(dm$RFSTDTC[i]) + lubridate::days(sample(1:60, 1))
+      end_date <- lubridate::ymd(dm$RFSTDTC[i]) + lubridate::days(with_seed(seed, sample(1:60, 1)))
       dm$RFENDTC[i] <- as.character(end_date)
       dm$RFXENDTC[i] <- as.character(end_date)
       dm$RFPENDTC[i] <- as.character(end_date)
@@ -123,7 +123,7 @@ rdm <- function(n_patients = 400,
   # Death info
   dm$DTHDTC <- NA_character_
   dm$DTHFL <- NA_character_
-  death_idx <- sample(seq_len(n_patients), size = ceiling(n_patients * 0.005))
+  death_idx <- with_seed(seed, sample(seq_len(n_patients), size = ceiling(n_patients * 0.005)))
   for (idx in death_idx) {
     if (!is.na(dm$RFENDTC[idx])) {
       dm$DTHDTC[idx] <- dm$RFENDTC[idx]
@@ -132,7 +132,7 @@ rdm <- function(n_patients = 400,
   }
 
   # Site and investigator
-  dm$SITEID <- sample(sites, n_patients, replace = TRUE)
+  dm$SITEID <- with_seed(seed, sample(sites, n_patients, replace = TRUE))
   dm$INVID <- sapply(dm$SITEID, function(site) investigators[[site]]$id)
   dm$INVNAM <- sapply(dm$SITEID, function(site) investigators[[site]]$name)
 
@@ -144,9 +144,9 @@ rdm <- function(n_patients = 400,
   dm$BRTHDTC <- as.character(lubridate::ymd(dm$RFICDTC) - lubridate::years(dm$AGE))
 
   # Sex, race, ethnicity
-  dm$SEX <- sample(names(sex_probs), n_patients, replace = TRUE, prob = sex_probs)
-  dm$RACE <- sample(names(race_probs), n_patients, replace = TRUE, prob = race_probs)
-  dm$ETHNIC <- sample(names(ethnic_probs), n_patients, replace = TRUE, prob = ethnic_probs)
+  dm$SEX <- with_seed(seed, sample(names(sex_probs), n_patients, replace = TRUE, prob = sex_probs))
+  dm$RACE <- with_seed(seed, sample(names(race_probs), n_patients, replace = TRUE, prob = race_probs))
+  dm$ETHNIC <- with_seed(seed, sample(names(ethnic_probs), n_patients, replace = TRUE, prob = ethnic_probs))
 
   # Treatment arms
   arm_codes <- sapply(arms, function(x) x$code)
@@ -158,20 +158,20 @@ rdm <- function(n_patients = 400,
   # Actual arm (crossover)
   dm$ACTARMCD <- dm$ARMCD
   dm$ACTARM <- dm$ARM
-  crossover_idx <- sample(seq_len(n_patients), size = ceiling(n_patients * 0.02))
+  crossover_idx <- with_seed(seed, sample(seq_len(n_patients), size = ceiling(n_patients * 0.02)))
   for (idx in crossover_idx) {
-    new_arm <- sample(arm_codes[arm_codes != dm$ARMCD[idx]], 1)
+    new_arm <- with_seed(seed, sample(arm_codes[arm_codes != dm$ARMCD[idx]], 1))
     dm$ACTARMCD[idx] <- new_arm
     dm$ACTARM[idx] <- arms[[which(arm_codes == new_arm)]]$description
   }
 
   # Country
-  dm$COUNTRY <- sample(
+  dm$COUNTRY <- with_seed(seed, sample(
     c("USA", "CAN", "GBR", "DEU", "FRA", "JPN", "AUS"),
     n_patients,
     replace = TRUE,
     prob = c(0.40, 0.15, 0.10, 0.10, 0.10, 0.10, 0.05)
-  )
+  ))
 
   # Demographics collection date
   dm$DMDTC <- dm$RFICDTC
