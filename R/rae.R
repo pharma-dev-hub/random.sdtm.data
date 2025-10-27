@@ -17,7 +17,7 @@
 #' se <- rse(dm, te)
 #' ae <- rae(dm, se)
 
-rae <- function(dm, se, seed = NULL,
+rae <- function(dm, se, seed = 1122,
                 aeout_probs = c("RECOVERED" = 0.475, "ONGOING" = 0.475, "DEATH" = 0.05)) {
 
   if (!is.null(seed)) set.seed(seed)
@@ -44,7 +44,7 @@ rae <- function(dm, se, seed = NULL,
   ae_subjects <- dm_ae %>%
     sample_frac(0.2) %>%
     rowwise() %>%
-    mutate(n_ae = sample(1:5, 1)) %>%
+    mutate(n_ae = with_seed(seed, sample(1:5, 1))) %>%
     ungroup()
 
   # Expand rows based on n_ae
@@ -53,7 +53,7 @@ rae <- function(dm, se, seed = NULL,
     group_by(USUBJID) %>%
     mutate(
       AESEQ = row_number(),
-      TERM_INDEX = sample(1:nrow(ae_terms), n(), replace = TRUE),
+      TERM_INDEX = with_seed(seed, sample(1:nrow(ae_terms), n(), replace = TRUE)),
       AETERM     = ae_terms$AETERM[TERM_INDEX],
       AEMODIFY   = AETERM,
       AEDECOD    = ae_terms$AEDECOD[TERM_INDEX],
@@ -67,15 +67,15 @@ rae <- function(dm, se, seed = NULL,
       AEHLGTCD   = ae_terms$AEHLGTCD[TERM_INDEX],
       AESOCCD    = ae_terms$AESOCCD[TERM_INDEX],
       AEBDSYCD   = ae_terms$AEBDSYCD[TERM_INDEX],
-      AESEV      = sample(c("MILD", "MOD", "SEV"), n(), replace = TRUE),
-      AESER      = sample(c("Y", "N"), n(), replace = TRUE, prob = c(0.1, 0.9)),
-      AEOUT      = sample(names(aeout_probs), n(), replace = TRUE, prob = aeout_probs),
-      AEACN      = sample(c("NONE", "DOSE REDUCED", "DRUG WITHDRAWN"), n(), replace = TRUE),
+      AESEV      = with_seed(seed, sample(c("MILD", "MOD", "SEV"), n(), replace = TRUE)),
+      AESER      = with_seed(seed, sample(c("Y", "N"), n(), replace = TRUE, prob = c(0.1, 0.9))),
+      AEOUT      = with_seed(seed, sample(names(aeout_probs), n(), replace = TRUE, prob = aeout_probs)),
+      AEACN      = with_seed(seed, sample(c("NONE", "DOSE REDUCED", "DRUG WITHDRAWN"), n(), replace = TRUE)),
       AEACNOTH   = NA,
-      AEREL      = sample(c("RELATED", "NOT RELATED"), n(), replace = TRUE),
-      AEPATT     = sample(c("INTERMITTENT", "CONTINUOUS", "UNKNOWN"), n(), replace = TRUE),
-      AESTDTC    = RFSTDTC + sample(0:70, n(), replace = TRUE),
-      AEENDTC    = AESTDTC + sample(1:5, n(), replace = TRUE),
+      AEREL      = with_seed(seed, sample(c("RELATED", "NOT RELATED"), n(), replace = TRUE)),
+      AEPATT     = with_seed(seed, sample(c("INTERMITTENT", "CONTINUOUS", "UNKNOWN"), n(), replace = TRUE)),
+      AESTDTC    = RFSTDTC + with_seed(seed, sample(0:70, n(), replace = TRUE)),
+      AEENDTC    = AESTDTC + with_seed(seed, sample(1:5, n(), replace = TRUE)),
       AESTDY     = as.integer(AESTDTC - RFSTDTC + 1),
       AEENDY     = as.integer(AEENDTC - RFSTDTC + 1),
       AEENRF     = "AFTER",
