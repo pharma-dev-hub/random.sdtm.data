@@ -64,3 +64,4 @@ rsupp <- function(domain_data, supp_terms, domain = "AE", idvar = "SEQ", seed = 
 
 suppae <- rsupp(ae, suppae_terms, domain = "AE", idvar = "SEQ")
 suppcm <- rsupp(cm, suppcm_terms, domain = "CM", idvar = "SEQ")
+suppex <- rsupp(ex, suppex_terms, domain = "EX", idvar = "SEQ")

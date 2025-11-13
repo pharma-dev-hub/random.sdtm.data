@@ -22,18 +22,20 @@ rsv <- function(dm, tv, add_unscheduled = TRUE, unsched_n = 10) {
 
   dm_sv <- dm %>%
     filter(!is.na(RFXSTDTC)) %>%
-    mutate(RFXSTDTC = as.Date(RFXSTDTC),
-           RFXENDTC = as.Date(RFXENDTC),
-           DOMAIN = "SV")
+    mutate(
+      RFXSTDTC = as.Date(RFXSTDTC),
+      RFXENDTC = as.Date(RFXENDTC),
+      DOMAIN = "SV"
+    )
 
-  # Scheduled visits from TV
+  # Scheduled visits
   sv_scheduled <- dm_sv %>%
     select(STUDYID, USUBJID, RFXSTDTC, DOMAIN) %>%
     crossing(tv %>% select(VISITNUM, VISIT, VISITDY)) %>%
     rowwise() %>%
     mutate(
       VISITNUM = signif(VISITNUM, 2),
-      SVSTDTC = RFXSTDTC + days(VISITDY - 1),
+      SVSTDTC = as.Date(RFXSTDTC + days(VISITDY - 1)),
       SVENDTC = SVSTDTC + days(1),
       SVSTDY = ifelse(SVSTDTC < RFXSTDTC, as.integer(SVSTDTC - RFXSTDTC),
                       as.integer(SVSTDTC - RFXSTDTC) + 1),
@@ -42,12 +44,11 @@ rsv <- function(dm, tv, add_unscheduled = TRUE, unsched_n = 10) {
     ) %>%
     ungroup()
 
-  # Prepare sorted VISITDY and VISITNUM pairs once
   tv_lookup <- tv %>% select(VISITDY, VISITNUM) %>% arrange(VISITDY)
 
-  # Add unscheduled visits
+  # Unscheduled visits
   if (add_unscheduled) {
-    unsched_n_actual <- sample(1:10, 1)
+    unsched_n_actual <- sample(1:unsched_n, 1)
     unsched_subjects <- sample(unique(dm$USUBJID), size = min(unsched_n_actual, nrow(dm)))
 
     sv_unsched <- dm_sv %>%
@@ -61,7 +62,7 @@ rsv <- function(dm, tv, add_unscheduled = TRUE, unsched_n = 10) {
         next_num = tv_lookup$VISITNUM[tv_lookup$VISITDY == next_dy],
         VISITNUM = signif(round(prev_num + ((VISITDY - prev_dy) / (next_dy - prev_dy)) * (next_num - prev_num), 2), 2),
         VISIT = "Unscheduled",
-        SVSTDTC = RFXSTDTC + days(VISITDY - 1),
+        SVSTDTC = as.Date(RFXSTDTC + days(VISITDY - 1)),
         SVENDTC = SVSTDTC + days(1),
         SVSTDY = as.integer(SVSTDTC - RFXSTDTC + 1),
         SVENDY = as.integer(SVENDTC - RFXSTDTC + 1)
@@ -69,7 +70,7 @@ rsv <- function(dm, tv, add_unscheduled = TRUE, unsched_n = 10) {
       ungroup() %>%
       select(STUDYID, DOMAIN, USUBJID, VISITNUM, VISIT, VISITDY, SVSTDTC, SVENDTC, SVSTDY, SVENDY)
   } else {
-    sv_unsched <- NULL
+    sv_unsched <- sv_scheduled[0, ]  # empty tibble with same structure
   }
 
   # Combine scheduled and unscheduled
@@ -97,7 +98,7 @@ rsv <- function(dm, tv, add_unscheduled = TRUE, unsched_n = 10) {
     SVENDY   = "Study Day of End of Visit"
   ))
 
-  # Order columns
+  # Final column order
   sv <- sv %>%
     select(STUDYID, DOMAIN, USUBJID, VISITNUM, VISIT, VISITDY, EPOCH,
            SVSTDTC, SVENDTC, SVSTDY, SVENDY)
