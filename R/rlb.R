@@ -18,7 +18,7 @@
 #' @param drop_scat_visn Mention the VISITNUM values which needs to be dropped from the dataset for a particular LBSCAT. Expected format: LBSCAT|VISITNUM numeric values separated by comma. Example: "Renal Function|1, 2, 3" - If VISITNUM 1, 2, 3 are not needed in dataset for "Renal Function" LBSCAT.
 #' @param drop_testcd_visn Mention the VISITNUM values which needs to be dropped from the dataset for a particular LBTESTCD. Expected format: LBTESTCD|VISITNUM numeric values separated by comma. Example: "ALB|1, 2, 3" - If VISITNUM 1, 2, 3 are not needed in dataset for "ALB" LBTESTCD.
 #' @param grpid Values to be mapped under LBGRPID variable - Expected format: TESTCD|VAR1|VAR2|...|VARn. Each value must be separated by a pipe (|). TESTCD values should match respective input. The values under VAR1, VAR2, … VARn would be concatenated separated by a hyphen (-). If same TESTCD value is given as input as more than once, the values for the TESTCDs will be duplicated when each time same TESTCD is added.
-#' @param sort_seq Sorting sequence to be used for LBSEQ mapping. Default value is given as c("STUDYID", "USUBJID", "VISITNUM", "LBTESTCD", "LBTEST", "LBDTC"), user can modify if required.
+#' @param sort_seq Sorting sequence to be used for LBSEQ mapping. Default value is given as c("STUDYID", "USUBJID", "LBCAT", "LBTESTCD", "LBTEST", "VISITNUM", "LBDTC"), user can modify if required.
 #' @param drop_vars List the Permissible variables with no values that needs to be dropped - Variabe names should be in UPPERCASE
 #'
 #' @return A data.frame with SDTM LB structure
@@ -26,10 +26,17 @@
 #'
 #' @examples
 #'
-#'
 #' rlb()
 #'
-#'
+#' rlb(domain = "LB",
+#'     drop_cat = c("COAGULATION"),
+#'     drop_testcd = c("ALB","ALT"),
+#'     drop_visn = c(5, 7),
+#'     drop_cat_visn = c("CHEMISTRY|1"),
+#'     drop_scat_visn = c("Renal Function|3"),
+#'     drop_testcd_visn = c("ALP|2, 4", "BILI|2, 4"),
+#'     grpid = c("AST|USUBJID|LBTESTCD|LBSPEC", "BILI|USUBJID|LBTESTCD|LBSPEC|LBDTC"),
+#'     sort_seq = c("STUDYID", "USUBJID", "VISITNUM", "LBTESTCD", "LBTEST", "LBDTC"))
 #'
 
 rlb <- function(domain = "LB",
@@ -41,7 +48,7 @@ rlb <- function(domain = "LB",
                 drop_scat_visn = c(),
                 drop_testcd_visn = c(),
                 grpid = c(),
-                sort_seq = c("STUDYID", "USUBJID", "VISITNUM", "LBTESTCD", "LBTEST", "LBDTC"),
+                sort_seq = c("STUDYID", "USUBJID", "LBCAT", "LBTESTCD", "LBTEST", "VISITNUM", "LBDTC"),
                 drop_vars = c()) {
 
   # Metadata for the LB dataset
@@ -145,15 +152,34 @@ rlb <- function(domain = "LB",
   }
 
   options(scipen = 999)  # Prevent scientific notation in display
+
   # Importing TEST, TESTCD, CAT, SCAT, RANGE Values as input
   lb_in <- read_xlsx("inst/data/LB Input.xlsx", .name_repair = "universal")
+
+  # Mapping --GRPID variables
+  if (length(grpid) > 0) {
+
+    grpid_df <- as.data.frame(grpid) %>%
+                mutate(testcd = sapply(strsplit(as.character(grpid), "\\|"), "[", 1),
+                       var_count = str_count(grpid, "\\|"),
+                       grpid_vars = mapply(function(test_var, grp_var) gsub(paste0(test_var, "\\|"), "", grp_var), testcd, grpid))
+
+    grpid_df1 <- left_join(grpid_df, lb_in, by = c("testcd" = "LBTESTCD"))
+
+    # Checking if TESTCD values provided under GRPID mathces the actual TESTCD input
+    if (!(all(grpid_df1$testcd %in% as.vector(unique(lb_in$LBTESTCD))))) {
+      stop("Error: Invalid input for GRPID. Expected format: TESTCD|VAR1|VAR2|...|VARn. Each value must be separated by a pipe (|). Check if the values match the provided TESTCD input.")
+    }
+
+    lb_in <- left_join(lb_in, grpid_df %>% select(testcd, grpid_vars), by = c("LBTESTCD" = "testcd"))
+  }
 
   # Input SV dataset to create data for each visit occurred
   sv_in <- sv %>%
            filter(SVOCCUR == "Y" | is.na(SVOCCUR) | SVOCCUR == "") %>%
            select(USUBJID, VISIT, VISITNUM, SVSTDTC)
 
-  # Crossing SV with TEST to get test records each subject/visit
+  # Crossing SV with LB input to get test records for each subject/visit
   df1 <- crossing(sv_in, lb_in)
 
   # LBALL Records
@@ -213,31 +239,39 @@ rlb <- function(domain = "LB",
          mutate(STUDYID = studyid,
                 DOMAIN = domain,
                 LBORRES = ifelse(!is.na(as.character(result_n)), as.character(result_n), as.character(result_c)),
-                LBSTRESN = ifelse(!is.na(conv_factor) & conv_factor != 1, conv_factor * suppressWarnings(as.numeric(LBORRES)), suppressWarnings(as.numeric(LBORRES)))  ,
+                LBORRESU = ifelse(LBORRES != "" & !is.na(LBORRES), as.character(LBORRESU), NA_character_),
+                LBSTRESN = ifelse(!is.na(conv_factor) & conv_factor != 1, conv_factor * suppressWarnings(as.numeric(LBORRES)), suppressWarnings(as.numeric(LBORRES))),
                 LBSTRESC = ifelse(!is.na(as.character(LBSTRESN)), as.character(LBSTRESN), as.character(LBORRES)),
+                LBSTRESU = ifelse(LBSTRESC != "" & !is.na(LBSTRESC), as.character(LBSTRESU), NA_character_),
                 LBORNRLO = as.character(LBORNRLO),
                 LBORNRHI = as.character(LBORNRHI),
-                LBSTNRLO = as.character(LBSTNRLO),
-                LBSTNRHI = as.character(LBSTNRHI),
-                LBNRIND = case_when(!is.na(LBSTRESN) & !is.na(LBSTNRLO) & LBSTRESN < LBSTNRLO ~ "LOW",
-                                    !is.na(LBSTRESN) & !is.na(LBSTNRHI) & LBSTRESN > LBSTNRHI ~ "HIGH",
-                                    !is.na(LBSTRESN) & !is.na(LBSTNRLO) & !is.na(LBSTNRHI) & LBSTNRLO <= LBSTRESN & LBSTRESN <= LBSTNRHI ~ "NORMAL"),
+                LBSTNRLO = as.numeric(LBSTNRLO),
+                LBSTNRHI = as.numeric(LBSTNRHI),
+                LBNRIND = case_when(!is.na(LBSTRESN) & !is.na(LBSTNRLO) & as.numeric(LBSTRESN) < as.numeric(LBSTNRLO) ~ "LOW",
+                                    !is.na(LBSTRESN) & !is.na(LBSTNRHI) & as.numeric(LBSTRESN) > as.numeric(LBSTNRHI) ~ "HIGH",
+                                    !is.na(LBSTRESN) & !is.na(LBSTNRLO) & !is.na(LBSTNRHI) & as.numeric(LBSTNRLO) <= as.numeric(LBSTRESN) & as.numeric(LBSTRESN) <= as.numeric(LBSTNRHI) ~ "NORMAL",
+                                    !is.na(LBSTRESN) & !is.na(LBSTNRLO) & is.na(LBSTNRHI) & as.numeric(LBSTRESN) >= as.numeric(LBSTNRLO) ~ "NORMAL",
+                                    !is.na(LBSTRESN) & is.na(LBSTNRLO) & !is.na(LBSTNRHI) & as.numeric(LBSTRESN) <= as.numeric(LBSTNRHI) ~ "NORMAL",
+                                    TRUE ~ NA_character_),
                 LBSTAT = ifelse(is.na(LBORRES), "NOT DONE", NA_character_),
                 LBREASND = ifelse(is.na(LBORRES), "UNKNOWN", NA_character_),
-                LBDTC = SVSTDTC) %>%
+                LBDTC = SVSTDTC,
+                VISITNUM = as.numeric(VISITNUM)) %>%
+         # Dropping records as per input
          left_join(drop_cat_visn_df, by = c("LBCAT" = "cat")) %>%
-         left_join(drop_scat_visn_df, by = c("LBCAT" = "scat")) %>%
+         left_join(drop_scat_visn_df, by = c("LBSCAT" = "scat")) %>%
          left_join(drop_testcd_visn_df, by = c("LBTESTCD" = "testcd")) %>%
          filter(!LBCAT %in% drop_cat) %>%
          filter(!LBSCAT %in% drop_scat) %>%
          filter(!LBTESTCD %in% drop_testcd) %>%
          filter(!VISITNUM %in% drop_visn) %>%
          rowwise() %>%
-         filter(!VISITNUM %in% as.numeric(strsplit(cat_visn, ",")[[1]])) %>%
-         filter(!VISITNUM %in% as.numeric(strsplit(scat_visn, ",")[[1]])) %>%
-         filter(!VISITNUM %in% as.numeric(strsplit(testcd_visn, ",")[[1]])) %>%
+         filter(!VISITNUM %in% as.numeric(strsplit(as.character(cat_visn), ",")[[1]])) %>%
+         filter(!VISITNUM %in% as.numeric(strsplit(as.character(scat_visn), ",")[[1]])) %>%
+         filter(!VISITNUM %in% as.numeric(strsplit(as.character(testcd_visn), ",")[[1]])) %>%
          ungroup()
 
+  # Mapping LBGRPID Variable if input is provided
   if (length(grpid) > 0 ) {
 
     # Checking if input variables are available
@@ -279,7 +313,7 @@ rlb <- function(domain = "LB",
   }
 
   # Mapping LOBXFL variable
-  df5 <- lobxfl(df = df4, dtc = "LBDTC", res_var = "LBORRES", sort = c("USUBJID", "LBTESTCD"))
+  df5 <- lobxfl(df = df4, dtc = "LBDTC", res_var = "LBORRES", sort = c("USUBJID", "LBCAT", "LBSCAT", "LBSPEC", "LBTESTCD"))
 
   # Mapping EPOCH variable
   df6 <- epoch(df = df5, dtc = "LBDTC")
@@ -306,18 +340,4 @@ rlb <- function(domain = "LB",
 
   # Final LB dataset
   assign("lb", df10, envir = .GlobalEnv)
-
-
-# GRPID Mapping as per rvs function
-# NEED TO MAP FEW LBALL RECORDS
-# Need to give option to add test/testcd/unit_org/unit_std to be added for new Tests
-# Drop CAT, Drop SCAT, Drop TESTCD options should be given, Drop TESTCD|VISN, Drop CAT|VISN
-# REVIEW THE LB INPUT FILE THOROUGHLY FOR UNIT CONV, MIN/MAX, LO/HI, MEAN/SD/DEC Values
-# DO A COMPLETE DATA CHECK BY EXPORTING THE FINAL DATASET AS A EXCEL FILE
-# Check if grpid is mapped correctly and check if duplicates are created if same TESTCD added more than once in grpid as input
-# Example calling needs to be added in documentation part
-
-
 }
-
-
