@@ -70,7 +70,7 @@ rdm <- function(n_patients = 400,
   checkmate::assert_numeric(sex_probs, lower = 0, upper = 1, len = 2)
   checkmate::assert_numeric(race_probs, lower = 0, upper = 1)
   checkmate::assert_numeric(ethnic_probs, lower = 0, upper = 1)
-  checkmate::assert_number(seed, null.ok = TRUE)
+  # checkmate::assert_number(seed, null.ok = TRUE)
   checkmate::assert_number(na_prob, lower = 0, upper = 1)
   checkmate::assert_flag(cached)
 
@@ -217,7 +217,7 @@ rdm <- function(n_patients = 400,
     ETHNIC   = "Ethnicity",
     ARMCD    = "Planned Arm Code",
     ARM      = "Description of Planned Arm",
-    ARMNRS   = "Planned Arm Name for Randomization Stratification",
+    ARMNRS   = "Planned Arm (Narrow)",
     ACTARMCD = "Actual Arm Code",
     ACTARM   = "Description of Actual Arm",
     ACTARMUD = "Actual Arm Used",

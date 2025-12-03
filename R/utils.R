@@ -10,7 +10,7 @@ library(withr)
 
 # Global requirement
 studyid <- "AD2025"
-set.seed(2025)
+# set.seed(2025)
 
 apply_metadata <- function(data, metadata) {
   checkmate::assert_data_frame(data)
@@ -155,7 +155,7 @@ lobxfl <- function(df, dtc, res_var, sort = c()){
 
 sv1 <- crossing(dm %>% select(USUBJID, RFSTDTC), tv) %>%
   mutate(SVOCCUR = "Y",
-         SVSTDTC = RFSTDTC) %>%
+         SVSTDTC = as.Date(RFSTDTC)) %>%
   filter(row_number() %in% c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
                              21, 22, 23, 24, 25, 26, 27,
                              31,
@@ -166,14 +166,9 @@ sv1 <- crossing(dm %>% select(USUBJID, RFSTDTC), tv) %>%
                              84, 85, 86,
                              92, 94, 96, 98, 99))
 
-unsch <- data.frame(USUBJID = c("AD2025-00005", "AD2025-00005", "AD2025-00005", "AD2025-00007", "AD2025-00007", "AD2025-00008", "AD2025-00010"),
-                    VISIT = c("Unscheduled", "Unscheduled", "Unscheduled", "Unscheduled", "Unscheduled", "Unscheduled", "Unscheduled"),
-                    VISITNUM = c(99, 99, 99, 99, 99, 99, 99),
-                    SVOCCUR = c("N", "Y", "Y", "N", "Y", "N", "Y"),
-                    SVSTDTC = as.Date(c("2026-02-02", "2025-02-12", "2026-12-02", "2026-09-02", "2023-10-02", "2026-02-22", "2022-02-02")))
-
-
-sv <- bind_rows(sv1, unsch) %>%  select(USUBJID, VISIT, VISITNUM, SVOCCUR, SVSTDTC) %>% arrange(USUBJID, VISITNUM, SVSTDTC)
+sv <- bind_rows(sv1, unsch) %>%
+  select(USUBJID, VISIT, VISITNUM, SVOCCUR, SVSTDTC) %>%
+  arrange(USUBJID, VISITNUM, SVSTDTC)
 
 # Dummy SE creation
 se1 <- crossing(dm, te %>%  select(-DOMAIN, -STUDYID))
