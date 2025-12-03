@@ -52,7 +52,7 @@ rae <- function(dm, se, seed = 1122,
     slice(rep(1:n(), ae_subjects$n_ae)) %>%
     group_by(USUBJID) %>%
     mutate(
-      AESEQ = row_number(),
+      AESEQ      = row_number(),
       TERM_INDEX = with_seed(seed, sample(1:nrow(ae_terms), n(), replace = TRUE)),
       AETERM     = ae_terms$AETERM[TERM_INDEX],
       AEMODIFY   = AETERM,
