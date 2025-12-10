@@ -8,7 +8,6 @@
 #' The following Permissible variables have NOT been mapped within the rex function: EXGRPID, EXREFID, EXSPID, EXLNKID, EXLNKGRP, EXCAT, EXSCAT, EXDOSTXT, EXDOSRGM, EXLOT, EXLOC, EXLAT, EXDIR, EXFAST, EXADJ, TAETORD, EXDUR, EXTPT, EXTPTNUM, EXELTM, EXTPTREF, EXRFTDTC.
 #' Dependency datasets: dm, se
 #'
-#' @param domain By default, value has been set as "EX", user can modify it if needed but not recommended
 #' @param n_dose No. of doses for each ARM. Input values should be given along with ARMCD value. Expected format: ARMCD|No. of Dose. If no inputs are given, No. of Dose will be 1 by default.
 #' @param dose Dose value for each ARM and its repeated administration. Input values should be given along with ARMCD value. Expected format: ARMCD|Dose values separated by comma. Example: "PLA|100, 150, 200" - If "PLA" ARM has three different doses planned. If no inputs are given, Dose will be 100 by default.
 #' @param dosu Dose Unit value for each ARM and its repeated administration. Input values should be given along with ARMCD value. Expected format: ARMCD|Dose Unit values separated by comma. Example: "PLA|mg, g, mg/kg" - If "PLA" ARM has three different doses planned. If no inputs are given, Dose Unit will be "mg" by default.
@@ -22,15 +21,15 @@
 #' @export
 #'
 #' @examples
-#' rex()
+#' \dontrun{
+#' ex <- rex()
 #'
-#' rex(n_dose = c("PLA|2", "DER|4"),
-#'     dose = c("ADA", "PLA|600", "DER|100, 150, 200, 400"),
-#'     dosu = c("ADA", "PLA|mg", "DER|ml, mg/kg, mL, g"))
-#'
+#' ex <- rex(n_dose = c("PLA|2", "DER|4"),
+#'           dose = c("ADA", "PLA|600", "DER|100, 150, 200, 400"),
+#'           dosu = c("ADA", "PLA|mg", "DER|ml, mg/kg, mL, g"))
+#' }
 
-rex <- function(domain = "EX",
-                n_dose = c(),
+rex <- function(n_dose = c(),
                 dose = c(),
                 dosu = c(),
                 dosfrm = c(),
@@ -202,8 +201,8 @@ rex <- function(domain = "EX",
          group_by(USUBJID) %>%
          mutate(SEQ = row_number()) %>%
          ungroup() %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain,
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "EX",
                 EXTRT = ACTARM,
                 EXDOSE = ifelse(!grepl("PLACEBO", toupper(EXTRT)), dose, 0),
                 EXDOSU = dosu,
@@ -230,13 +229,13 @@ rex <- function(domain = "EX",
                 EXROUTE, EPOCH, EXSTDTC, EXENDTC, EXSTDY, EXENDY)
 
   # Adding labels to the variables
-  df9 <- apply_metadata(df8, ex_metadata)
+  ex <- apply_metadata(df8, ex_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df9 <- df9 %>% select(-all_of(drop_vars))
+    ex <- ex %>% select(-all_of(drop_vars))
   }
 
   # Final EX dataset
-  assign("ex", df9, envir = .GlobalEnv)
+  return(ex)
 }

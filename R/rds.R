@@ -10,7 +10,6 @@
 #' The following Permissible variables have NOT been mapped within the rds function: DSGRPID, DSREFID, DSSPID, DSSCAT, DSDTC, DSDY
 #' Dependency datasets: dm, se
 #'
-#' @param domain By default, value has been set as "DS", user can modify it if needed but not recommended
 #' @param sort_seq Sorting sequence to be used for DSSEQ mapping. Default value is given as c("STUDYID", "USUBJID", "DSCAT", "DSDECOD", "DSSTDTC"), user can modify if required.
 #' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be in UPPERCASE
 #'
@@ -18,12 +17,12 @@
 #' @export
 #'
 #' @examples
-#' rds()
-#'
+#' \dontrun{
+#' ds <- rds()
+#' }
 
-rds <- function(domain = "DS",
-                sort_seq = c("STUDYID", "USUBJID", "DSCAT", "DSDECOD", "DSSTDTC"),
-                drop_vars = c()){
+rds <- function(sort_seq = c("STUDYID", "USUBJID", "DSCAT", "DSDECOD", "DSSTDTC"),
+                drop_vars = c()) {
 
   # Metadata for the DS dataset
   ds_metadata <- list("STUDYID" = "Study Identifier",
@@ -76,8 +75,8 @@ rds <- function(domain = "DS",
   # Combining all the Disposition data
   df1 <- bind_rows(ic_df, dth_df, ds_df) %>%
          select(USUBJID, DSTERM, DSDECOD, DSCAT, DSSTDTC) %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain)
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "DS")
 
   # Mapping EPOCH variable
   df2 <- epoch(df = df1, dtc = "DSSTDTC")
@@ -93,13 +92,13 @@ rds <- function(domain = "DS",
          select(STUDYID, DOMAIN, USUBJID, DSSEQ, DSTERM, DSDECOD, DSCAT, EPOCH, DSSTDTC, DSSTDY)
 
   # Adding labels to the variables
-  df6 <- apply_metadata(df5, ds_metadata)
+  ds <- apply_metadata(df5, ds_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df6 <- df6 %>% select(-all_of(drop_vars))
+    ds <- ds %>% select(-all_of(drop_vars))
   }
 
   # Final DS dataset
-  assign("ds", df6, envir = .GlobalEnv)
+  return(ds)
 }

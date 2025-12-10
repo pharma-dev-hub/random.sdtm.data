@@ -9,7 +9,6 @@
 #' The following Permissible variables have NOT been mapped within the rvs function: VSSPID, VSBLFL, VSDRVFL, VSTOX, VSTOXGR, VSCLSIG, VISITDY, TAETORD, VSELTM, VSTPTREF, VSRFTDTC.
 #' Dependency datasets: dm, se, sv
 #'
-#' @param domain By default, value has been set as "VS", user can modify it if needed but not recommended
 #' @param testcd Values to be mapped under VSTESTCD variable
 #' @param test Values to be mapped under VSTEST variable
 #' @param unit_org Values to be mapped under VSORRESU variable (optional) - If no values has been given as input for unit_org, default units will be used for each Tests are as follows: WEIGHT = kg, HEIGHT = cm, BMI = kg/m2, TEMP = C,  HR = beats/min, PULSE =  beats/min, RESP = breaths/min, DIABP = mmHg, SYSBP = mmHg. List of units allowed as inputs for each Tests are as follows: WEIGHT = g, kg; HEIGHT = cm, ft, in, m, mm; BMI = kg/m2; TEMP = C, F, K; HR = beats/min; PULSE = beats/min; RESP = breaths/min; DIABP = cmHg, mmHg; SYSBP = cmHg, mmHg.
@@ -28,21 +27,28 @@
 #' @export
 #'
 #' @examples
-#' rvs(testcd = c("WEIGHT", "HEIGHT", "BMI", "TEMP", "HR", "PULSE", "RESP", "DIABP", "SYSBP"),
-#'     test = c("Weight", "Height", "Body Mass Index", "Temperature", "Heart Rate", "Pulse Rate", "Respiratory Rate", "Diastolic Blood Pressure", "Systolic Blood Pressure"),
-#'     unit_org = c("g", "mm", "kg/m2", "F", "beats/min", "beats/min", "breaths/min", "cmHg", "mmHg"),
-#'     unit_std = c("kg", "cm", "kg/m2", "C", "beats/min", "beats/min", "breaths/min", "mmHg", "cmHg"),
-#'     cat = c("VITAL SIGNS", "VITAL SIGNS", rep(NA, 5), "VITAL SIGNS", "VITAL SIGNS"),
-#'     scat = c(rep(NA, 7), "Blood Pressure", "Blood Pressure"),
-#'     tpt = c("HR|Pre-Dose|-1", "HR|Post-Dose|1"),
-#'     pos = c("STANDING", rep(NA, 8)),
-#'     loc = c("ARM", rep(NA, 8)),
-#'     lat = c("LEFT", rep(NA, 8)),
-#'     grpid = c("WEIGHT|USUBJID|VISIT|VSDTC", "HEIGHT|USUBJID|VISIT|VSDTC|VSTEST", "HR|USUBJID|VISIT|VSDTC|VSTEST"),
-#'     drop_vars = c())
-#'
-rvs <- function(domain = "VS",
-                testcd = c(),
+#' \dontrun{
+#' vs <- rvs(testcd = c("WEIGHT", "HEIGHT", "BMI", "TEMP", "HR", "PULSE", "RESP",
+#'                      "DIABP", "SYSBP"),
+#'           test = c("Weight", "Height", "Body Mass Index", "Temperature",
+#'                    "Heart Rate", "Pulse Rate", "Respiratory Rate", "Diastolic Blood Pressure",
+#'                    "Systolic Blood Pressure"),
+#'           unit_org = c("g", "mm", "kg/m2", "F", "beats/min", "beats/min", "breaths/min",
+#'                        "cmHg", "mmHg"),
+#'           unit_std = c("kg", "cm", "kg/m2", "C", "beats/min", "beats/min", "breaths/min",
+#'                        "mmHg", "cmHg"),
+#'           cat = c("VITAL SIGNS", "VITAL SIGNS", rep(NA, 5), "VITAL SIGNS", "VITAL SIGNS"),
+#'           scat = c(rep(NA, 7), "Blood Pressure", "Blood Pressure"),
+#'           tpt = c("HR|Pre-Dose|-1", "HR|Post-Dose|1"),
+#'           pos = c("STANDING", rep(NA, 8)),
+#'           loc = c("ARM", rep(NA, 8)),
+#'           lat = c("LEFT", rep(NA, 8)),
+#'           grpid = c("WEIGHT|USUBJID|VISIT|VSDTC", "HEIGHT|USUBJID|VISIT|VSDTC|VSTEST",
+#'                     "HR|USUBJID|VISIT|VSDTC|VSTEST"),
+#'           drop_vars = c())
+#' }
+
+rvs <- function(testcd = c(),
                 test = c(),
                 unit_org = c(),
                 unit_std = c(),
@@ -278,7 +284,7 @@ rvs <- function(domain = "VS",
 
   # Input SV dataset to create data for each visit occurred
   sv_in <- sv %>%
-           filter(SVOCCUR == "Y") %>%
+           filter(SVOCCUR == "Y" | is.na(SVOCCUR) | SVOCCUR == "") %>%
            select(USUBJID, VISIT, VISITNUM, SVSTDTC)
 
   # Crossing SV with TEST to get test records each subject/visit
@@ -314,8 +320,8 @@ rvs <- function(domain = "VS",
 
   # Mapping general variables and Result variables
   df3 <- df2 %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain,
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "VS",
                 VSTESTCD = testcd,
                 VSTEST = test,
                 VSCAT = cat,
@@ -397,14 +403,13 @@ rvs <- function(domain = "VS",
                 VSDY, VSTPT, VSTPTNUM)
 
   # Adding labels to the variables
-  df10 <- apply_metadata(df9, vs_metadata)
+  vs <- apply_metadata(df9, vs_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df10 <- df10 %>% select(-all_of(drop_vars))
+    vs <- vs %>% select(-all_of(drop_vars))
   }
 
   # Final VS dataset
-  assign("vs", df10, envir = .GlobalEnv)
-
+  return(vs)
 }

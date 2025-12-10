@@ -5,7 +5,6 @@
 #' Creates a random SDTM TE (Trial Elements) dataset following CDISC SDTM standards.
 #' Trial Design. One record per planned Element, Tabulation.
 #'
-#' @param domain By default, value has been set as "TE", user can modify it if needed but not recommended
 #' @param etcd Values to be mapped under ETCD variable
 #' @param element Values to be mapped under ELEMENT variable
 #' @param testrl Values to be mapped under TESTRL variable
@@ -17,16 +16,14 @@
 #' @export
 #'
 #' @examples
-#' rte(etcd = c("SCR", "TRT", "FUP"),
-#'     element = c("Screening", "Treatment", "Follow-up"),
-#'     testrl = c("First visit", "First dose", "End of treatment"),
-#'     teenrl = c("First dose", "End of treatment", "End of study"),
-#'     tedur = c("14 days", "10 weeks", "4 weeks"),
-#'     drop_vars = c())
-#'
+#' te <- rte(etcd = c("SCR", "TRT", "FUP"),
+#'           element = c("Screening", "Treatment", "Follow-up"),
+#'           testrl = c("First visit", "First dose", "End of treatment"),
+#'           teenrl = c("First dose", "End of treatment", "End of study"),
+#'           tedur = c("14 days", "10 weeks", "4 weeks"),
+#'           drop_vars = c())
 
-rte <- function(domain = "TE",
-                etcd = c(),
+rte <- function(etcd = c(),
                 element = c(),
                 testrl = c(),
                 teenrl = c(),
@@ -85,18 +82,18 @@ rte <- function(domain = "TE",
   names(evars) <- toupper(names(evars))
 
   df1 <- evars %>%
-    mutate(STUDYID = studyid,
-           DOMAIN = domain) %>%
+    mutate(STUDYID = get_studyid(),
+           DOMAIN = "TE") %>%
     select(STUDYID, DOMAIN, ETCD, ELEMENT, TESTRL, TEENRL, TEDUR)
 
   # Adding labels to the variables
-  df2 <- apply_metadata(df1, te_metadata)
+  te <- apply_metadata(df1, te_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df2 <- df2 %>% select(-all_of(drop_vars))
+    te <- te %>% select(-all_of(drop_vars))
   }
 
   # Final TE dataset
-  assign("te", df2, envir = .GlobalEnv)
+  return(te)
 }

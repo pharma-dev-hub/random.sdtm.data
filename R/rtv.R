@@ -5,7 +5,6 @@
 #' Creates a random SDTM TV (Trial Visits) dataset following CDISC SDTM standards.
 #' Trial Design. One record per planned Visit per Arm, Tabulation.
 #'
-#' @param domain By default, value has been set as "TV", user can modify it if needed but not recommended
 #' @param visitnum Numeric vector - Values to be mapped under VISITNUM variable
 #' @param visit Values to be mapped under VISIT variable
 #' @param visitdy Numeric vector - Values to be mapped under VISITDY variable (optional)
@@ -19,18 +18,24 @@
 #' @export
 #'
 #' @examples
-#' rtv(visitnum = c(1, 2, 3, 4, 5, 6, 7, 8),
-#'     visit = c("Screening", "Baseline", "Week 2", "Week 4", "Week 6", "Week 8", "Week 10", "Follow-up"),
-#'     visitdy = c(-14, 1, 15, 29, 43, 57, 71, 99),
-#'     armcd = c(),
-#'     arm = c(),
-#'     tvstrl = c("Based on scheduled calendar days from first dose", "Based on scheduled calendar days from first dose", "Based on scheduled calendar days from first dose", "Based on scheduled calendar days from first dose", "Based on scheduled calendar days from first dose", "Based on scheduled calendar days from first dose", "Based on scheduled calendar days from first dose", "Based on scheduled calendar days from first dose"),
-#'     tvenrl = c(),
-#'     drop_vars = c())
-#'
+#' tv <- rtv(visitnum = c(1, 2, 3, 4, 5, 6, 7, 8),
+#'           visit = c("Screening", "Baseline", "Week 2", "Week 4", "Week 6", "Week 8",
+#'                     "Week 10", "Follow-up"),
+#'           visitdy = c(-14, 1, 15, 29, 43, 57, 71, 99),
+#'           armcd = c(),
+#'           arm = c(),
+#'           tvstrl = c("Based on scheduled calendar days from first dose",
+#'                      "Based on scheduled calendar days from first dose",
+#'                      "Based on scheduled calendar days from first dose",
+#'                      "Based on scheduled calendar days from first dose",
+#'                      "Based on scheduled calendar days from first dose",
+#'                      "Based on scheduled calendar days from first dose",
+#'                      "Based on scheduled calendar days from first dose",
+#'                      "Based on scheduled calendar days from first dose"),
+#'           tvenrl = c(),
+#'           drop_vars = c())
 
-rtv <- function(domain ="TV",
-                visitnum = c(),
+rtv <- function(visitnum = c(),
                 visit = c(),
                 visitdy = c(),
                 armcd = c(),
@@ -117,19 +122,19 @@ rtv <- function(domain ="TV",
   names(visit_vars) <- toupper(names(visit_vars))
 
   df1 <- visit_vars %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain) %>%
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "TV") %>%
          arrange(ARMCD, VISITNUM, VISIT) %>%
          select(STUDYID, DOMAIN, VISITNUM, VISIT, VISITDY, ARMCD, ARM, TVSTRL, TVENRL)
 
   # Adding labels to the variables
-  df2 <- apply_metadata(df1, tv_metadata)
+  tv <- apply_metadata(df1, tv_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df2 <- df2 %>% select(-all_of(drop_vars))
+    tv <- tv %>% select(-all_of(drop_vars))
   }
 
   # Final TV dataset
-  assign("tv", df2, envir = .GlobalEnv)
+  return(tv)
 }

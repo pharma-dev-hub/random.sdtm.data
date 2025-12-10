@@ -14,9 +14,11 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' sv <- rsv(dm, tv)
+#' }
 
-rsv <- function(dm, tv, add_unscheduled = TRUE, unsched_n = 10, seed = 1122) {
+rsv <- function(dm, tv, add_unscheduled = TRUE, unsched_n = 10) {
   assert_data_frame(dm)
   assert_data_frame(tv)
 
@@ -47,14 +49,14 @@ rsv <- function(dm, tv, add_unscheduled = TRUE, unsched_n = 10, seed = 1122) {
 
   # Add unscheduled visits
   if (add_unscheduled) {
-    unsched_n_actual <- with_seed(seed, sample(1:10, 1))
-    unsched_subjects <- with_seed(seed, sample(unique(dm$USUBJID), size = min(unsched_n_actual, nrow(dm))))
+    unsched_n_actual <- with_seed(get_with_seed(), sample(1:10, 1))
+    unsched_subjects <- with_seed(get_with_seed(), sample(unique(dm$USUBJID), size = min(unsched_n_actual, nrow(dm))))
 
     sv_unsched <- dm_sv %>%
       filter(USUBJID %in% unsched_subjects) %>%
       rowwise() %>%
       mutate(
-        VISITDY = with_seed(seed, sample(10:90, 1)),
+        VISITDY = with_seed(get_with_seed(), sample(10:90, 1)),
         prev_dy = max(tv_lookup$VISITDY[tv_lookup$VISITDY < VISITDY], na.rm = TRUE),
         next_dy = min(tv_lookup$VISITDY[tv_lookup$VISITDY > VISITDY], na.rm = TRUE),
         prev_num = tv_lookup$VISITNUM[tv_lookup$VISITDY == prev_dy],
@@ -102,8 +104,6 @@ rsv <- function(dm, tv, add_unscheduled = TRUE, unsched_n = 10, seed = 1122) {
     select(STUDYID, DOMAIN, USUBJID, VISITNUM, VISIT, VISITDY, EPOCH,
            SVSTDTC, SVENDTC, SVSTDY, SVENDY)
 
+  # Final SV dataset
   return(sv)
 }
-
-# Call the function to create the dataset
-sv <- rsv(dm, tv)

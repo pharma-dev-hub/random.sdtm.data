@@ -5,7 +5,6 @@
 #' Creates a random SDTM TA (Trial Arms) dataset following CDISC SDTM standards.
 #' Trial Design. One record per planned Element per Arm, Tabulation.
 #'
-#' @param domain By default, value has been set as "TA", user can modify it if needed but not recommended
 #' @param armcd Values to be mapped under ARMCD variable - Repeat the ARMCD values based on no.of. Elements within each ARM
 #' @param arm Values to be mapped under ARM variable - Repeat the ARM values based on no.of. Elements within each ARM
 #' @param taetord Numeric vector - Values to be mapped under TAETORD variable
@@ -20,19 +19,20 @@
 #' @export
 #'
 #' @examples
-#' rta(armcd = c("ADA", "ADA", "ADA", "DER", "DER", "DER", "PLA", "PLA", "PLA"),
-#'     arm =  c("Adalimumab", "Adalimumab", "Adalimumab", "Dermavalimab", "Dermavalimab", "Dermavalimab", "Placebo", "Placebo", "Placebo"),
-#'     taetord = c(1, 2, 3, 1, 2, 3, 1, 2, 3),
-#'     etcd = c("SCR", "TRT", "FUP", "SCR", "TRT", "FUP", "SCR", "TRT", "FUP"),
-#'     element = c("Screening", "Treatment", "Follow-up", "Screening", "Treatment", "Follow-up", "Screening", "Treatment", "Follow-up"),
-#'     tabranch = c("ADA|1|Randomized to ADA","PLA|1|Randomized to PLA"),
-#'     tatrans = c("DER|2|Dermavalimab Arm", "PLA|3|Placebo Arm"),
-#'     epoch = c("Screening", "Treatment", "Follow-up", "Screening", "Treatment", "Follow-up", "Screening", "Treatment", "Follow-up"),
-#'     drop_vars = c())
-#'
+#' ta <- rta(armcd = c("ADA", "ADA", "ADA", "DER", "DER", "DER", "PLA", "PLA", "PLA"),
+#'           arm =  c("Adalimumab", "Adalimumab", "Adalimumab", "Dermavalimab", "Dermavalimab",
+#'                    "Dermavalimab", "Placebo", "Placebo", "Placebo"),
+#'           taetord = c(1, 2, 3, 1, 2, 3, 1, 2, 3),
+#'           etcd = c("SCR", "TRT", "FUP", "SCR", "TRT", "FUP", "SCR", "TRT", "FUP"),
+#'           element = c("Screening", "Treatment", "Follow-up", "Screening", "Treatment",
+#'                       "Follow-up", "Screening", "Treatment", "Follow-up"),
+#'           tabranch = c("ADA|1|Randomized to ADA","PLA|1|Randomized to PLA"),
+#'           tatrans = c("DER|2|Dermavalimab Arm", "PLA|3|Placebo Arm"),
+#'           epoch = c("Screening", "Treatment", "Follow-up", "Screening", "Treatment",
+#'                     "Follow-up", "Screening", "Treatment", "Follow-up"),
+#'           drop_vars = c())
 
-rta <- function(domain = "TA",
-                armcd = c(),
+rta <- function(armcd = c(),
                 arm = c(),
                 taetord = c(),
                 etcd = c(),
@@ -124,19 +124,19 @@ rta <- function(domain = "TA",
   df1 <- arm_x_evars %>%
          left_join(tabranch_df %>% select(ARMCD, TAETORD, TABRANCH), by = c("ARMCD" = "ARMCD", "TAETORD" = "TAETORD")) %>%
          left_join(tatrans_df %>% select(ARMCD, TAETORD, TATRANS), by = c("ARMCD" = "ARMCD", "TAETORD" = "TAETORD")) %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain) %>%
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "TA") %>%
          arrange(STUDYID, ARMCD, TAETORD) %>%
          select(STUDYID, DOMAIN, ARMCD, ARM, TAETORD, ETCD, ELEMENT, TABRANCH, TATRANS, EPOCH)
 
   # Adding labels to the variables
-  df2 <- apply_metadata(df1, ta_metadata)
+  ta <- apply_metadata(df1, ta_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df2 <- df2 %>% select(-all_of(drop_vars))
+    ta <- ta %>% select(-all_of(drop_vars))
   }
 
   # Final TA dataset
-  assign("ta", df2, envir = .GlobalEnv)
+  return(ta)
 }

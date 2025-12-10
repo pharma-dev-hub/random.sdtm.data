@@ -8,7 +8,6 @@
 #' The following Permissible variables have NOT been mapped within the rec function: ECGRPID, ECREFID, ECSPID, ECLNKGRP, ECCAT, ECSCAT, ECREASOC, ECDOSTXT, ECDOSTOT, ECDOSRGM, ECLOT, ECLOC, ECLAT, ECDIR, ECPORTOT, ECFAST, ECPSTRG, ECPSTRGU, ECADJ, TAETORD, ECDUR, ECTPT, ECTPTNUM, ECELTM, ECTPTREF, ECRFTDTC
 #' Dependency datasets: dm, se
 #'
-#' @param domain By default, value has been set as "EC", user can modify it if needed but not recommended
 #' @param n_dose No. of doses for each ARM. Input values should be given along with ARMCD value. Expected format: ARMCD|No. of Dose. If no inputs are given, No. of Dose will be 1 by default.
 #' @param dose Dose value for each ARM and its repeated administration. Input values should be given along with ARMCD value. Expected format: ARMCD|Dose values separated by comma. Example: "PLA|100, 150, 200" - If "PLA" ARM has three different doses planned. If no inputs are given, Dose will be 100 by default.
 #' @param dosu Dose Unit value for each ARM and its repeated administration. Input values should be given along with ARMCD value. Expected format: ARMCD|Dose Unit values separated by comma. Example: "PLA|mg, g, mg/kg" - If "PLA" ARM has three different doses planned. If no inputs are given, Dose Unit will be "mg" by default.
@@ -22,15 +21,15 @@
 #' @export
 #'
 #' @examples
-#' rec()
+#' \dontrun{
+#' ec <- rec()
 #'
-#' rec(n_dose = c("PLA|2", "DER|4"),
-#'     dose = c("ADA", "PLA|600", "DER|100, 150, 200, 400"),
-#'     dosu = c("ADA", "PLA|mg", "DER|ml, mg/kg, mL, g"))
-#'
+#' ec <- rec(n_dose = c("PLA|2", "DER|4"),
+#'           dose = c("ADA", "PLA|600", "DER|100, 150, 200, 400"),
+#'           dosu = c("ADA", "PLA|mg", "DER|ml, mg/kg, mL, g"))
+#' }
 
-rec <- function(domain = "EC",
-                n_dose = c(),
+rec <- function(n_dose = c(),
                 dose = c(),
                 dosu = c(),
                 dosfrm = c(),
@@ -222,8 +221,8 @@ rec <- function(domain = "EC",
 
   # Combining Scheduled and Performed records and mapping general variables
   df3 <- bind_rows(df_sch, df_per) %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain,
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "EC",
                 ECTRT = ACTARM,
                 ECDOSE = if_else(ECOCCUR == "N", NA_real_, ifelse(!toupper(ECTRT) %in% c("PLACEBO"), dose, 0), missing = dose),
                 ECDOSU = if_else(ECOCCUR == "N", NA_character_, dosu, missing = dosu),
@@ -248,13 +247,13 @@ rec <- function(domain = "EC",
                 ECDOSU, ECDOSFRM, ECDOSFRQ, ECROUTE, EPOCH, ECSTDTC, ECENDTC, ECSTDY, ECENDY)
 
   # Adding labels to the variables
-  df9 <- apply_metadata(df8, ec_metadata)
+  ec <- apply_metadata(df8, ec_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df9 <- df9 %>% select(-all_of(drop_vars))
+    ec <- ec %>% select(-all_of(drop_vars))
   }
 
   # Final EC dataset
-  assign("ec", df9, envir = .GlobalEnv)
+  return(ec)
 }

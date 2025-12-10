@@ -5,7 +5,6 @@
 #' Creates a random SDTM TI (Trial Inclusion/Exclusion Criteria) dataset following CDISC SDTM standards.
 #' Trial Design. One record per I/E criterion, Tabulation.
 #'
-#' @param domain By default, value has been set as "TI", user can modify it if needed but not recommended
 #' @param ietestcd Values to be mapped under IETESTCD variable
 #' @param ietest Values to be mapped under IETEST variable
 #' @param iecat Values to be mapped under IECAT variable
@@ -18,23 +17,26 @@
 #' @export
 #'
 #' @examples
-#' rti(ietestcd = c("IN01", "IN02", "EX01", "EX02", "EX03", "IN01_V2", "IN02_V2", "EX01_V2", "EX02_V2", "EX03_V2"),
-#'     ietest = c("Inclusion Criteria 1", "Inclusion Criteria 2", "Exclusion Criteria 1", "Exclusion Criteria 2", "Exclusion Criteria 3", "Inclusion Criteria 1 V2", "Inclusion Criteria 2 V2", "Exclusion Criteria 1 V2", "Exclusion Criteria 2 V2", "Exclusion Criteria 3 V2"),
-#'     iecat = c("INCLUSION", "INCLUSION", "EXCLUSION", "EXCLUSION", "EXCLUSION", "INCLUSION", "INCLUSION", "EXCLUSION", "EXCLUSION", "EXCLUSION"),
-#'     iescat = c("Minor", rep(NA, 9)),
-#'     tirl = c("IN01|Inclusion 1 Rue", "EX02_V2|Rule for Exclusion 2"),
-#'     tivers = c(rep("1.0", 5), rep("2.0", 5)),
-#'     drop_vars = c())
-#'
+#' ti <- rti(ietestcd = c("IN01", "IN02", "EX01", "EX02", "EX03", "IN01_V2", "IN02_V2",
+#'                        "EX01_V2", "EX02_V2", "EX03_V2"),
+#'           ietest = c("Inclusion Criteria 1", "Inclusion Criteria 2", "Exclusion Criteria 1",
+#'                      "Exclusion Criteria 2", "Exclusion Criteria 3", "Inclusion Criteria 1 V2",
+#'                      "Inclusion Criteria 2 V2", "Exclusion Criteria 1 V2",
+#'                      "Exclusion Criteria 2 V2", "Exclusion Criteria 3 V2"),
+#'           iecat = c("INCLUSION", "INCLUSION", "EXCLUSION", "EXCLUSION", "EXCLUSION",
+#'                     "INCLUSION", "INCLUSION", "EXCLUSION", "EXCLUSION", "EXCLUSION"),
+#'           iescat = c("Minor", rep(NA, 9)),
+#'           tirl = c("IN01|Inclusion 1 Rue", "EX02_V2|Rule for Exclusion 2"),
+#'           tivers = c(rep("1.0", 5), rep("2.0", 5)),
+#'           drop_vars = c())
 
-rti <- function(domain = "TI",
-                ietestcd = c(),
+rti <- function(ietestcd = c(),
                 ietest = c(),
                 iecat = c(),
                 iescat = c(),
                 tirl = c(),
                 tivers = c(),
-                drop_vars = c()){
+                drop_vars = c()) {
 
   # Metadata for the TI dataset
   ti_metadata <- list("STUDYID" = "Study Identifier",
@@ -112,19 +114,19 @@ rti <- function(domain = "TI",
   # Joining TIRL variable; Mapping STUDYID and DOMAIN
   df1 <- ti_vars %>%
          left_join(tirl_df %>% select(IETESTCD, TIRL), by = c("IETESTCD" = "IETESTCD")) %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain) %>%
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "TI") %>%
          arrange(STUDYID, TIVERS, desc(IECAT), IETESTCD) %>%
          select(STUDYID, DOMAIN, IETESTCD, IETEST, IECAT, IESCAT, TIRL, TIVERS)
 
   # Adding labels to the variables
-  df2 <- apply_metadata(df1, ti_metadata)
+  ti <- apply_metadata(df1, ti_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df2 <- df2 %>% select(-all_of(drop_vars))
+    ti <- ti %>% select(-all_of(drop_vars))
   }
 
   # Final TI dataset
-  assign("ti", df2, envir = .GlobalEnv)
+  return(ti)
 }

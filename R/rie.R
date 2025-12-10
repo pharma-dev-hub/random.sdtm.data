@@ -9,7 +9,6 @@
 #' The following Permissible variables have NOT been mapped within the rie function: IESPID, VISITDY, TAETORD.
 #' Dependency datasets: ti, dm, se, sv
 #'
-#' @param domain By default, value has been set as "IE", user can modify it if needed but not recommended
 #' @param sort_seq Sorting sequence to be used for IESEQ mapping. Default value is given as c("STUDYID", "USUBJID", "VISITNUM", "IETESTCD", "IETEST", "IEDTC"), user can modify if required.
 #' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be in UPPERCASE
 #'
@@ -17,11 +16,11 @@
 #' @export
 #'
 #' @examples
-#' rie()
-#'
+#' \dontrun{
+#' ie <- rie()
+#' }
 
-rie <- function(domain = "IE",
-                sort_seq = c("STUDYID", "USUBJID", "VISITNUM", "IETESTCD", "IETEST", "IEDTC"),
+rie <- function(sort_seq = c("STUDYID", "USUBJID", "VISITNUM", "IETESTCD", "IETEST", "IEDTC"),
                 drop_vars = c()) {
 
   # Metadata for the IE dataset
@@ -70,16 +69,16 @@ rie <- function(domain = "IE",
     }
 
     # Retaining only necessary variables
-    df2 <- df1 %>%
+    ie <- df1 %>%
            select(STUDYID, DOMAIN, USUBJID, IESEQ, IETESTCD, IETEST, IECAT, IESCAT, IEORRES, IESTRESC, VISITNUM, VISIT, EPOCH, IEDTC, IEDY)
 
     # Drop Variables
     if (length(drop_vars) > 0) {
-      df2 <- df2 %>% select(-all_of(drop_vars))
+      ie <- ie %>% select(-all_of(drop_vars))
     }
 
     # IE dataset with zero observation
-    assign("ie", df2, envir = .GlobalEnv)
+    return(ie)
 
     return("NOTE: No subjects were Screen Failure in dm dataset, and hence IE dataset has been created with zero observation")
   }
@@ -93,7 +92,7 @@ rie <- function(domain = "IE",
   df_list <- list()
 
   # Random values to select TIVERS for each subject
-  n_sample <- with_seed(seed, sample(1:as.numeric(nrow(tivers)), size = length(unique(sub1$USUBJID)), replace = TRUE))
+  n_sample <- with_seed(get_with_seed(), sample(1:as.numeric(nrow(tivers)), size = length(unique(sub1$USUBJID)), replace = TRUE))
 
   itr <- 0
 
@@ -139,7 +138,7 @@ rie <- function(domain = "IE",
 
     temp_df1 <- df1 %>% filter(USUBJID == subject)
 
-    n_sample_t[itr_s] <- with_seed(seed + itr_s, sample(1:as.numeric(nrow(temp_df1)), size = 1, replace = TRUE))
+    n_sample_t[itr_s] <- with_seed(get_with_seed() + itr_s, sample(1:as.numeric(nrow(temp_df1)), size = 1, replace = TRUE))
   }
 
   itr_t <- 0
@@ -154,7 +153,7 @@ rie <- function(domain = "IE",
     temp_df1 <- df1 %>% filter(USUBJID == subject)
 
     temp_df2 <- temp_df1 %>%
-                filter(row_number() %in% as.vector(with_seed(seed, sample(1:n(), size = as.numeric(n_sample_t[[itr_t]]), replace = FALSE))))
+                filter(row_number() %in% as.vector(with_seed(get_with_seed(), sample(1:n(), size = as.numeric(n_sample_t[[itr_t]]), replace = FALSE))))
 
     iedf_list[[subject]] <- temp_df2
   }
@@ -164,8 +163,8 @@ rie <- function(domain = "IE",
 
   # Mapping general variables and Result variables
   df3 <- df2 %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain,
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "IE",
                 IEORRES = case_when(IECAT == "EXCLUSION" ~ "Y",
                                     IECAT == "INCLUSION" ~ "N",
                                     TRUE ~ NA_character_),
@@ -187,13 +186,13 @@ rie <- function(domain = "IE",
          select(STUDYID, DOMAIN, USUBJID, IESEQ, IETESTCD, IETEST, IECAT, IESCAT, IEORRES, IESTRESC, VISITNUM, VISIT, EPOCH, IEDTC, IEDY)
 
   # Adding labels to the variables
-  df8 <- apply_metadata(df7, ie_metadata)
+  ie <- apply_metadata(df7, ie_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df8 <- df8 %>% select(-all_of(drop_vars))
+    ie <- ie %>% select(-all_of(drop_vars))
   }
 
   # Final IE dataset
-  assign("ie", df8, envir = .GlobalEnv)
+  return(ie)
 }

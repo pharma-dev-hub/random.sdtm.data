@@ -8,7 +8,6 @@
 #' SDTM Terminology 2025-03-28 is used.
 #' Dependency datasets: dm, ta
 #'
-#' @param domain By default, value has been set as "TS", user can modify it if needed but not recommended
 #' @param adapt TSVAL for records where TSPARMCD is 'ADAPT'. Default value is "N".
 #' @param addon TSVAL for records where TSPARMCD is 'ADDON'. Default value is "N".
 #' @param agemin TSVAL for records where TSPARMCD is 'AGEMIN'. Default value is 18.
@@ -55,11 +54,11 @@
 #' @export
 #'
 #' @examples
-#' rts()
-#'
+#' \dontrun{
+#' ts <- rts()
+#' }
 
-rts <- function(domain = "TS",
-                adapt = "N",
+rts <- function(adapt = "N",
                 addon = "N",
                 agemin = 18,
                 agemax = 70,
@@ -93,14 +92,13 @@ rts <- function(domain = "TS",
                 tcntrl = "PLACEBO",
                 tdigrp = "Cancer",
                 therarea = "Oncology",
-                title = "A Phase 3, Randomized, Double-Blind Study to Evaluate the Efficacy and Safety of IMP in Subjects with Cancer",
+                title = title_default,
                 tphase = "PHASE III TRIAL",
                 trt = "IMP",
                 ttype = c("EFFICACY", "SAFETY", "TOLERABILITY"),
                 sort_seq = c("STUDYID", "TSPARMCD", "TSVAL", "TSVALCD"),
                 add_pars = NULL,
-                drop_pars = c()
-                ) {
+                drop_pars = c()) {
 
   # Metadata for the TS dataset
   ts_metadata <- list("STUDYID" = "Study Identifier",
@@ -249,7 +247,9 @@ rts <- function(domain = "TS",
   }
 
   # Controlled Terminology to be used for TSVALCD mapping
-  CT <- read_xlsx("inst/data/TS SDTM Terminology 2025-03-28.xlsx", .name_repair = "universal") %>%
+  path_lb <- system.file("extdata", "ts_sdtm_terminology_2025-03-28.xlsx", package = "random.sdtm.data", mustWork = TRUE)
+
+  CT <- read_xlsx(path_lb, .name_repair = "universal") %>%
            mutate(ref = "CDISC CT",
                   ver = "2025-03-28")
 
@@ -259,8 +259,8 @@ rts <- function(domain = "TS",
 
   # Mapping of General Variables and TSVALCD/TSVCDREF/TSVCDVER
   df3 <- df2 %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain,
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "TS",
                 TSVALNF = ifelse(TSVAL == "" | is.na(TSVAL) | nchar(TSVAL) == 0, "NA", NA_character_)) %>%
          left_join(TS_CT %>% select(Code, ref, ver, CDISC.Submission.Value), by = c("TSVAL" = "CDISC.Submission.Value")) %>%
          left_join(UNIT_CT %>% select(Code, ref, ver, CDISC.Submission.Value), by = c("TSVAL" = "CDISC.Submission.Value")) %>%
@@ -284,9 +284,8 @@ rts <- function(domain = "TS",
          select(STUDYID, DOMAIN, TSSEQ, TSPARMCD, TSPARM, TSVAL, TSVALNF, TSVALCD, TSVCDREF, TSVCDVER)
 
   # Adding labels to the variables
-  df6 <- apply_metadata(df5, ts_metadata)
+  ts <- apply_metadata(df5, ts_metadata)
 
   # Final TS dataset
-  assign("ts", df6, envir = .GlobalEnv)
-
+  return(ts)
 }
