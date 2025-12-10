@@ -1,38 +1,28 @@
 Package: random.sdtm.data
-Type: Package
 Title: Create Random SDTM Datasets
 Version: 0.0.0.9000
 Authors@R: c(
-    person("Andras", "Kasa", email = "andras.kasa@ucb.com", 
-           role = c("aut", "cre")))
-Description: A set of functions to create random Study Data Tabulation Model (SDTM) 
-    datasets. SDTM dataset specifications are described by the Clinical Data 
-    Interchange Standards Consortium (CDISC) SDTM Implementation Guide.
+    person("Andras", "Kasa", email = "andras.kasa@ucb.com", role = c("aut", "cre")),
+    person("Balamurugan", "Shanmugam", email = "balamurugan.shanmugam@ucb.com", role = "aut"),
+    person("Ethan", "Pollitt", email = "ethan.pollitt@ucb.com", role = "aut")
+    )
+Description: A set of functions to create random Study Data Tabulation Model (SDTM) datasets. SDTM dataset specifications are described by the Clinical Data Interchange Standards Consortium (CDISC) SDTM Implementation Guide.
 License: Apache License 2.0
 Encoding: UTF-8
 LazyData: true
 Depends: R (>= 3.6)
-Imports:
-    checkmate (>= 2.1.0),
-    dplyr (>= 1.0.5),
-    lifecycle (>= 0.2.0),
-    lubridate (>= 1.7.4),
-    magrittr (>= 1.5),
-    purrr (>= 1.0.0),
-    rlang (>= 1.0.0),
-    stringr (>= 1.4.0),
-    tibble (>= 3.2.0),
-    tidyr (>= 1.1.0),
-    yaml (>= 2.1.15)
-Suggests:
-    covr (>= 3.6.1),
-    knitr (>= 1.22),
-    lintr (>= 3.0.0),
-    pkgdown (>= 2.0.0),
-    rmarkdown (>= 2.19),
-    testthat (>= 3.0.4),
-    withr (>= 2.1.0)
-VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.1.2
 Language: en-US
+Imports: 
+    checkmate (>= 2.1.0),
+    dplyr (>= 1.0.8),
+    lubridate (>= 1.8.0),
+    magrittr (>= 2.0.3),
+    purrr (>= 0.3.4),
+    readxl (>= 1.4.0),
+    rlang (>= 1.1.5),
+    stringr (>= 1.5.2),
+    tibble (>= 3.1.7),
+    tidyr (>= 1.2.0),
+    withr (>= 3.0.2)
