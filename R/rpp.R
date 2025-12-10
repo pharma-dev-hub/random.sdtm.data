@@ -8,7 +8,6 @@
 #' The following Permissible variables have NOT been mapped within the rpp function: PPANMETH, TAETORD, PPTPTREF, PPSTINT, PPENINT
 #' Dependency datasets: dm, pc, ex, se
 #'
-#' @param domain By default, value has been set as "PP", user can modify it if needed but not recommended
 #' @param grp_by Grouping Variables to be used to derive Pharmacokinetic Parameters from PC data. Default value is given as c("USUBJID", "VISIT").
 #' @param cat Values to be mapped under PPCAT variable - Expected format: PPTESTCD|PPCAT value. Each value must be separated by a pipe (|).
 #' @param scat Values to be mapped under PPSCAT variable - Expected format: PPTESTCD|PPSCAT value. Each value must be separated by a pipe (|).
@@ -20,16 +19,17 @@
 #' @export
 #'
 #' @examples
-#' rpp()
+#' \dontrun{
+#' pp <- rpp()
 #'
-#' rpp(grp_by = c("USUBJID", "VISIT", "PCGRPID"),
-#'     cat = c("AUCALL|Area Under Curve", "AUCLST|Area Under Curve", "AUCIFO|Area Under Curve"),
-#'     scat = c("AUCLST|Last non-zero Obs"),
-#'     drop_testcds = c("MRT"))
-#'
+#' pp <- rpp(grp_by = c("USUBJID", "VISIT", "PCGRPID"),
+#'           cat = c("AUCALL|Area Under Curve", "AUCLST|Area Under Curve",
+#'                   "AUCIFO|Area Under Curve"),
+#'           scat = c("AUCLST|Last non-zero Obs"),
+#'           drop_testcds = c("MRT"))
+#' }
 
-rpp <- function(domain = "PP",
-                grp_by = c("USUBJID", "VISIT"),
+rpp <- function(grp_by = c("USUBJID", "VISIT"),
                 cat = c(),
                 scat = c(),
                 drop_testcds = c(),
@@ -263,8 +263,8 @@ rpp <- function(domain = "PP",
 
   # Mapping general variables
   df1 <- cmb_df %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain,
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "PP",
                 PPGRPID = PCGRPID,
                 PPTESTCD = testcd,
                 PPTEST = test,
@@ -297,13 +297,13 @@ rpp <- function(domain = "PP",
                 PPORRESU, PPSTRESC, PPSTRESN, PPSTRESU, PPSTAT, PPREASND, PPSPEC, EPOCH, PPDTC, PPDY, PPRFTDTC)
 
   # Adding labels to the variables
-  df6 <- apply_metadata(df5, pp_metadata)
+  pp <- apply_metadata(df5, pp_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df6 <- df6 %>% select(-all_of(drop_vars))
+    pp <- pp %>% select(-all_of(drop_vars))
   }
 
   # Final PP dataset
-  assign("pp", df6, envir = .GlobalEnv)
+  return(pp)
 }

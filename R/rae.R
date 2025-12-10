@@ -6,21 +6,20 @@
 #'
 #' @param dm A data.frame representing the DM dataset
 #' @param se A data.frame representing the SE dataset
-#' @param seed Optional random seed for reproducibility
 #' @param aeout_probs Named vector of probabilities for AEOUT values (default: c("RECOVERED" = 0.45, "ONGOING" = 0.45, "DEATH" = 0.10))
 #'
 #' @return A data.frame with SDTM AE structure
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' dm <- rdm(n_patients = 100)
 #' se <- rse(dm, te)
 #' ae <- rae(dm, se)
+#' }
 
-rae <- function(dm, se, seed = 1122,
+rae <- function(dm, se,
                 aeout_probs = c("RECOVERED" = 0.475, "ONGOING" = 0.475, "DEATH" = 0.05)) {
-
-  if (!is.null(seed)) set.seed(seed)
 
   # AE terms and coding hierarchy
   ae_terms <- tibble::tibble(
@@ -41,10 +40,9 @@ rae <- function(dm, se, seed = 1122,
   dm_ae <- dm %>% mutate(RFSTDTC = as.Date(RFSTDTC))
 
   # Select 20% of subjects and assign random AE counts
-  ae_subjects <- dm_ae %>%
-    sample_frac(0.2) %>%
+  ae_subjects <- with_seed(get_with_seed(), sample_frac(dm_ae, 0.2)) %>%
     rowwise() %>%
-    mutate(n_ae = with_seed(seed, sample(1:5, 1))) %>%
+    mutate(n_ae = with_seed(get_with_seed(), sample(1:5, 1))) %>%
     ungroup()
 
   # Expand rows based on n_ae
@@ -53,7 +51,7 @@ rae <- function(dm, se, seed = 1122,
     group_by(USUBJID) %>%
     mutate(
       AESEQ      = row_number(),
-      TERM_INDEX = with_seed(seed, sample(1:nrow(ae_terms), n(), replace = TRUE)),
+      TERM_INDEX = with_seed(get_with_seed(), sample(1:nrow(ae_terms), n(), replace = TRUE)),
       AETERM     = ae_terms$AETERM[TERM_INDEX],
       AEMODIFY   = AETERM,
       AEDECOD    = ae_terms$AEDECOD[TERM_INDEX],
@@ -67,15 +65,15 @@ rae <- function(dm, se, seed = 1122,
       AEHLGTCD   = ae_terms$AEHLGTCD[TERM_INDEX],
       AESOCCD    = ae_terms$AESOCCD[TERM_INDEX],
       AEBDSYCD   = ae_terms$AEBDSYCD[TERM_INDEX],
-      AESEV      = with_seed(seed, sample(c("MILD", "MOD", "SEV"), n(), replace = TRUE)),
-      AESER      = with_seed(seed, sample(c("Y", "N"), n(), replace = TRUE, prob = c(0.1, 0.9))),
-      AEOUT      = with_seed(seed, sample(names(aeout_probs), n(), replace = TRUE, prob = aeout_probs)),
-      AEACN      = with_seed(seed, sample(c("NONE", "DOSE REDUCED", "DRUG WITHDRAWN"), n(), replace = TRUE)),
+      AESEV      = with_seed(get_with_seed(), sample(c("MILD", "MOD", "SEV"), n(), replace = TRUE)),
+      AESER      = with_seed(get_with_seed(), sample(c("Y", "N"), n(), replace = TRUE, prob = c(0.1, 0.9))),
+      AEOUT      = with_seed(get_with_seed(), sample(names(aeout_probs), n(), replace = TRUE, prob = aeout_probs)),
+      AEACN      = with_seed(get_with_seed(), sample(c("NONE", "DOSE REDUCED", "DRUG WITHDRAWN"), n(), replace = TRUE)),
       AEACNOTH   = NA,
-      AEREL      = with_seed(seed, sample(c("RELATED", "NOT RELATED"), n(), replace = TRUE)),
-      AEPATT     = with_seed(seed, sample(c("INTERMITTENT", "CONTINUOUS", "UNKNOWN"), n(), replace = TRUE)),
-      AESTDTC    = RFSTDTC + with_seed(seed, sample(0:70, n(), replace = TRUE)),
-      AEENDTC    = AESTDTC + with_seed(seed, sample(1:5, n(), replace = TRUE)),
+      AEREL      = with_seed(get_with_seed(), sample(c("RELATED", "NOT RELATED"), n(), replace = TRUE)),
+      AEPATT     = with_seed(get_with_seed(), sample(c("INTERMITTENT", "CONTINUOUS", "UNKNOWN"), n(), replace = TRUE)),
+      AESTDTC    = RFSTDTC + with_seed(get_with_seed(), sample(0:70, n(), replace = TRUE)),
+      AEENDTC    = AESTDTC + with_seed(get_with_seed(), sample(1:5, n(), replace = TRUE)),
       AESTDY     = as.integer(AESTDTC - RFSTDTC + 1),
       AEENDY     = as.integer(AEENDTC - RFSTDTC + 1),
       AEENRF     = "AFTER",
@@ -97,31 +95,12 @@ rae <- function(dm, se, seed = 1122,
 
   # Assign EPOCH and AESEQ
   ae <- epoch(ae, dtc = "AESTDTC")
-  ae <- seqnum(ae, sort = c("USUBJID", "AESTDTC"))
+  ae <- seqnum(ae, sort = c("USUBJID", "AEDECOD", "AETERM", "AESTDTC", "AEENDTC"))
 
   # Apply SDTM length constraints
   ae <- ae %>%
     mutate(
-      STUDYID    = substr(STUDYID, 1, 6),
-      DOMAIN     = substr(DOMAIN, 1, 2),
-      USUBJID    = substr(USUBJID, 1, 16),
-      AESPID     = substr(AESPID, 1, 2),
-      AETERM     = substr(AETERM, 1, 68),
-      AEMODIFY   = substr(AEMODIFY, 1, 68),
-      AELLT      = substr(AELLT, 1, 39),
-      AEDECOD    = substr(AEDECOD, 1, 39),
-      AEHLT      = substr(AEHLT, 1, 70),
-      AEHLGT     = substr(AEHLGT, 1, 60),
-      AESOC      = substr(AESOC, 1, 67),
-      AEBODSYS   = AESOC,
-      AESEV      = substr(AESEV, 1, 8),
-      AESER      = substr(AESER, 1, 1),
-      AEACN      = substr(AEACN, 1, 16),
-      AEACNOTH   = substr(AEACNOTH, 1, 4),
-      AEREL      = substr(AEREL, 1, 11),
-      AEPATT     = substr(AEPATT, 1, 12),
-      AEOUT      = substr(AEOUT, 1, 32),
-      EPOCH      = substr(EPOCH, 1, 9)
+      AEBODSYS   = AESOC
     ) %>%
     select(
       STUDYID, DOMAIN, USUBJID, AESEQ, AESPID, AETERM, AEMODIFY, AELLT, AELLTCD,
@@ -167,7 +146,6 @@ rae <- function(dm, se, seed = 1122,
     AEENTPT    = "End Reference Time Point"
   ))
 
+  # Final AE dataset
   return(ae)
 }
-
-ae <- rae(dm, se)

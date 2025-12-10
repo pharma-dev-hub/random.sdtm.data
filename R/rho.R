@@ -7,7 +7,6 @@
 #' The following Permissible variables have NOT been mapped within the rho function: HOGRPID, HOREFID, HOSPID, HODECOD, HOSTAT, HOREASND, TAETORD, HODTC, HODY, HODUR, HOSTRTPT, HOSTTPT, HOENRTPT, HOENTPT
 #' Dependency datasets: dm, se
 #'
-#' @param domain By default, value has been set as "HO", user can modify it if needed but not recommended
 #' @param term Values to be mapped under HOTERM variable
 #' @param prob Numeric vector - Probability of the event occurance. If the value is 1 for a event, then the event would be populated for all the subjects in DM dataset. If TERM is included but PROB is not included, 1 will be assigned as PROB.
 #' @param cat Values to be mapped under HOCAT variable (optional)
@@ -20,24 +19,22 @@
 #' @export
 #'
 #' @examples
-#' rho() #Creates HO dataset with predefined default values
+#' \dontrun{
+#' ho <- rho() #Creates HO dataset with predefined default values
 #'
-#' rho(domain = "HO",
-#'     term = c("GENERAL WARD", "HOSPITAL", "INTENSIVE CARE", "NURSING HOME"),
-#'     cat = c("HOSPITALIZATION", "HOSPITALIZATION", "HOSPITALIZATION", NA),
-#'     presp = c("Y", "Y", NA, NA),
-#'     sort_seq = c("STUDYID", "USUBJID", "HOTERM", "HOSTDTC", "HOENDTC"))
-#'
+#' ho <- rho(term = c("GENERAL WARD", "HOSPITAL", "INTENSIVE CARE", "NURSING HOME"),
+#'           cat = c("HOSPITALIZATION", "HOSPITALIZATION", "HOSPITALIZATION", NA),
+#'           presp = c("Y", "Y", NA, NA),
+#'           sort_seq = c("STUDYID", "USUBJID", "HOTERM", "HOSTDTC", "HOENDTC"))
+#' }
 
-rho <- function(domain = "HO",
-                term = c("GENERAL WARD", "HOSPITAL", "INTENSIVE CARE", "NURSING HOME"),
+rho <- function(term = c("GENERAL WARD", "HOSPITAL", "INTENSIVE CARE", "NURSING HOME"),
                 prob = c(0.8, 0.5, 0.2, 0.2),
                 cat = c("HOSPITALIZATION", "HOSPITALIZATION", "HOSPITALIZATION", NA),
                 scat = c(),
                 presp = c("Y", "Y", NA, NA),
                 sort_seq = c("STUDYID", "USUBJID", "HOTERM", "HOSTDTC", "HOENDTC"),
-                drop_vars = c()
-                ) {
+                drop_vars = c()) {
 
   # Metadata for the HO dataset
   ho_metadata <- list("STUDYID" = "Study Identifier",
@@ -147,7 +144,7 @@ rho <- function(domain = "HO",
     prob_1 <- unique(df_temp1$prob)
 
     df_temp2 <- df_temp1 %>%
-                mutate(n_sample = with_seed(seed, sample(c("Y", NA), size = n(), replace = TRUE, prob = c(prob_1, 1 - prob_1))))
+                mutate(n_sample = with_seed(get_with_seed(), sample(c("Y", NA), size = n(), replace = TRUE, prob = c(prob_1, 1 - prob_1))))
 
     df_list[[term_in]] <- df_temp2
 
@@ -158,15 +155,15 @@ rho <- function(domain = "HO",
 
   # Mapping general variables
   df3 <- df2 %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain,
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "HO",
                 HOTERM = term,
                 HOCAT = cat,
                 HOSCAT = scat,
                 HOPRESP = presp,
-                HOOCCUR = ifelse(presp == "Y", with_seed(seed, sample(c("Y", "N"), size = n(), replace = TRUE, prob = c(0.9, 0.1))), NA),
-                HOSTDTC = if_else(HOOCCUR != "N" | is.na(HOOCCUR), as.Date(as.Date(RFSTDTC) + with_seed(seed, sample(1:20, size = n(), replace = TRUE))), as.Date(NA)),
-                HOENDTC = if_else(HOOCCUR != "N" | is.na(HOOCCUR), as.Date(as.Date(HOSTDTC) + with_seed(seed, sample(1:10, size = n(), replace = TRUE))), as.Date(NA))) %>%
+                HOOCCUR = ifelse(presp == "Y", with_seed(get_with_seed(), sample(c("Y", "N"), size = n(), replace = TRUE, prob = c(0.9, 0.1))), NA),
+                HOSTDTC = if_else(HOOCCUR != "N" | is.na(HOOCCUR), as.Date(as.Date(RFSTDTC) + with_seed(get_with_seed(), sample(1:20, size = n(), replace = TRUE))), as.Date(NA)),
+                HOENDTC = if_else(HOOCCUR != "N" | is.na(HOOCCUR), as.Date(as.Date(HOSTDTC) + with_seed(get_with_seed(), sample(1:10, size = n(), replace = TRUE))), as.Date(NA))) %>%
                 select(-RFSTDTC)
 
   # Mapping EPOCH variable
@@ -185,14 +182,13 @@ rho <- function(domain = "HO",
                 EPOCH, HOSTDTC, HOENDTC, HOSTDY, HOENDY)
 
   # Adding labels to the variables
-  df9 <- apply_metadata(df8, ho_metadata)
+  ho <- apply_metadata(df8, ho_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df9 <- df9 %>% select(-all_of(drop_vars))
+    ho <- ho %>% select(-all_of(drop_vars))
   }
 
   # Final HO dataset
-  assign("ho", df9, envir = .GlobalEnv)
-
+  return(ho)
 }

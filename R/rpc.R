@@ -8,7 +8,6 @@
 #' The following Permissible variables have NOT been mapped within the rpc function: PCREFID, PCSPID, PCSPCCND, PCMETHOD, PCFAST, PCDRVFL, PCULOQ, VISITDY, TAETORD, PCENDTC, PCENDY, PCEVLINT.
 #' Dependency datasets: dm, ex, tv, ta, se
 #'
-#' @param domain By default, value has been set as "PC", user can modify it if needed but not recommended
 #' @param cat Values to be mapped under PCCAT variable - Expected format: TRT|PCCAT value. Each value must be separated by a pipe (|). TRT values should match with EXTRT values in EX dataset.
 #' @param scat Values to be mapped under PCSCAT variable - Expected format: TRT|PCSCAT value. Each value must be separated by a pipe (|). TRT values should match with EXTRT values in EX dataset.
 #' @param tpt Timepoint values for each TRT. Input values should be given along with TRT value. Expected format: TRT|Timepoint values separated by comma. Example: "Adalimumab|Pre-Dose, 1 hr Post-Dose, 2 hr Post-Dose, 6 hr Post-Dose, 12 hr Post-Dose, 24 hr Post-Dose" - If "Adalimumab" EXTRT has six Timepoint values. If no inputs are given, Timepoint values would be "Pre-Dose, 15 min Post-Dose, 30 min Post-Dose, 1 hr Post-Dose, 2 hr Post-Dose, 4 hr Post-Dose, 6 hr Post-Dose, 12 hr Post-Dose, 24 hr Post-Dose" by default.
@@ -25,15 +24,16 @@
 #' @export
 #'
 #' @examples
-#' rpc(cat = c("Adalimumab|ANALYTE"),
-#'     tpt = c("Dermavalimab drug|Pre-Dose, Post 5 min, Post 15 min, Post 30 min, Post 1 hr, Post 2hr, Post 3 hr, Post 4 hr, Post 5 hr, Post 6 hr, Post 12 hr"),
-#'     tptn = c("Dermavalimab drug|-1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10"))
+#' \dontrun{
+#' pc <- rpc(cat = c("Adalimumab|ANALYTE"),
+#'           tpt = c("Dermavalimab drug|Pre-Dose, Post 5 min, Post 15 min, Post 30 min, Post 1 hr,
+#'                   Post 2hr, Post 3 hr, Post 4 hr, Post 5 hr, Post 6 hr, Post 12 hr"),
+#'           tptn = c("Dermavalimab drug|-1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10"))
 #'
-#' rpc()
-#'
+#' pc <- rpc()
+#' }
 
-rpc <- function(domain = "PC",
-                cat = c(),
+rpc <- function(cat = c(),
                 scat = c(),
                 tpt = c(),
                 tptn = c(),
@@ -395,14 +395,14 @@ rpc <- function(domain = "PC",
 
   # Mapping result values based on min, max values and including few NA values
   df4 <- df3 %>%
-         mutate(res = round(with_seed(seed, runif(n(), min, max))),
-                res = ifelse(grepl("PRE DOSE", toupper(tpt)) | grepl("PRE-DOSE", toupper(tpt)), with_seed(seed, sample(c("<LLOQ", "BLOQ"), n(), replace = TRUE)), res),
-                res = ifelse(row_number() %in% c(with_seed(seed, sample(1:n(), n()/10))), NA, res))
+         mutate(res = round(with_seed(get_with_seed(), runif(n(), min, max))),
+                res = ifelse(grepl("PRE DOSE", toupper(tpt)) | grepl("PRE-DOSE", toupper(tpt)), with_seed(get_with_seed(), sample(c("<LLOQ", "BLOQ"), n(), replace = TRUE)), res),
+                res = ifelse(row_number() %in% c(with_seed(get_with_seed(), sample(1:n(), n()/10))), NA, res))
 
   # Mapping general variables and result variables
   df5 <- df4 %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain,
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "PC",
                 PCGRPID = paste0(USUBJID, "-", VISIT),
                 PCTESTCD = as.character(testcd),
                 PCTEST = EXTRT,
@@ -450,13 +450,13 @@ rpc <- function(domain = "PC",
                 PCTPT, PCTPTNUM, PCELTM, PCTPTREF, PCRFTDTC)
 
   # Adding labels to the variables
-  df10 <- apply_metadata(df9, pc_metadata)
+  pc <- apply_metadata(df9, pc_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df10 <- df10 %>% select(-all_of(drop_vars))
+    pc <- pc %>% select(-all_of(drop_vars))
   }
 
   # Final PC dataset
-  assign("pc", df10, envir = .GlobalEnv)
+  return(pc)
  }

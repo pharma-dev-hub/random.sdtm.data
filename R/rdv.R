@@ -8,7 +8,6 @@
 #' The following Permissible variables have NOT been mapped within the rdv function: DVREFID, DVSPID, DVSCAT, TAETORD
 #' Dependency datasets: dm, se
 #'
-#' @param domain By default, value has been set as "DV", user can modify it if needed but not recommended
 #' @param sort_seq Sorting sequence to be used for DVSEQ mapping. Default value is given as c("STUDYID", "USUBJID", "DVTERM", "DVDECOD", "DVCAT", "DVSTDTC", "DVENDTC"), user can modify if required.
 #' @param drop_vars List the Permissible variables with no values that needs to be dropped (optional) - Variabe names should be in UPPERCASE
 #'
@@ -16,11 +15,11 @@
 #' @export
 #'
 #' @examples
-#' rdv()
-#'
+#' \dontrun{
+#' dv <- rdv()
+#' }
 
-rdv <- function(domain = "DV",
-                sort_seq = c("STUDYID", "USUBJID", "DVTERM", "DVDECOD", "DVCAT", "DVSTDTC", "DVENDTC"),
+rdv <- function(sort_seq = c("STUDYID", "USUBJID", "DVTERM", "DVDECOD", "DVCAT", "DVSTDTC", "DVENDTC"),
                 drop_vars = c()) {
 
   # Metadata for the DV dataset
@@ -48,23 +47,25 @@ rdv <- function(domain = "DV",
   }
 
   # General Deviation terms to be used
-  dv_df <- read_xlsx("inst/data/deviations.xlsx", .name_repair = "universal")
+  path_dv <- system.file("extdata", "deviations.xlsx", package = "random.sdtm.data", mustWork = TRUE)
+
+  dv_df <- read_xlsx(path_dv, .name_repair = "universal")
 
   # Taking Random Subjects from DM to assign Deviations
   samp_subs <- dm %>%
-               filter(row_number() %in% as.vector(with_seed(seed, sample(1:n(), size = floor(n()/2), replace = FALSE)))) %>%
+               filter(row_number() %in% as.vector(with_seed(get_with_seed(), sample(1:n(), size = floor(n()/2), replace = FALSE)))) %>%
                select(USUBJID, RFICDTC)
 
   # Crossing Subjects with Deviations and filtering random records
   df1 <- crossing(samp_subs, dv_df) %>%
-         filter(row_number() %in% as.vector(with_seed(seed, sample(1:n(), size = floor(n()/5), replace = FALSE))))
+         filter(row_number() %in% as.vector(with_seed(get_with_seed(), sample(1:n(), size = floor(n()/5), replace = FALSE))))
 
   # Mapping General Variables
   df2 <- df1 %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain,
-                DVSTDTC = as.Date(as.Date(RFICDTC) + with_seed(seed, sample(1:60, size = n(), replace = TRUE))),
-                DVENDTC = as.Date(as.Date(DVSTDTC) + with_seed(seed, sample(0:3, size = n(), replace = TRUE))))
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "DV",
+                DVSTDTC = as.Date(as.Date(RFICDTC) + with_seed(get_with_seed(), sample(1:60, size = n(), replace = TRUE))),
+                DVENDTC = as.Date(as.Date(DVSTDTC) + with_seed(get_with_seed(), sample(0:3, size = n(), replace = TRUE))))
 
   # Mapping EPOCH variable
   df3 <- epoch(df = df2, dtc = "DVSTDTC")
@@ -81,13 +82,13 @@ rdv <- function(domain = "DV",
          select(STUDYID, DOMAIN, USUBJID, DVSEQ, DVTERM, DVDECOD, DVCAT, EPOCH, DVSTDTC, DVENDTC, DVSTDY, DVENDY)
 
   # Adding labels to the variables
-  df8 <- apply_metadata(df7, dv_metadata)
+  dv <- apply_metadata(df7, dv_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df8 <- df8 %>% select(-all_of(drop_vars))
+    dv <- dv %>% select(-all_of(drop_vars))
   }
 
   # Final DV dataset
-  assign("dv", df8, envir = .GlobalEnv)
+  return(dv)
 }

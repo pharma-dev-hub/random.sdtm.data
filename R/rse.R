@@ -12,14 +12,17 @@
 #' @export
 #'
 #' @examples
-#' dm <- rdm(n_patients = 100, seed = 2025)
-#' rte(etcd = c("SCR", "TRT", "FUP"),
-#'     element = c("Screening", "Treatment", "Follow-up"),
-#'     testrl = c("First visit", "First dose", "End of treatment"),
-#'     teenrl = c("First dose", "End of treatment", "End of study"),
-#'     tedur = c("14 days", "10 weeks", "4 weeks"))
+#' \dontrun{
+#' dm <- rdm(n_patients = 100)
+#'
+#' te <- rte(etcd = c("SCR", "TRT", "FUP"),
+#'           element = c("Screening", "Treatment", "Follow-up"),
+#'           testrl = c("First visit", "First dose", "End of treatment"),
+#'           teenrl = c("First dose", "End of treatment", "End of study"),
+#'           tedur = c("14 days", "10 weeks", "4 weeks"))
+#'
 #' se <- rse(dm, te)
-#' head(se)
+#' }
 
 rse <- function(dm, te) {
   # Validate inputs
@@ -97,11 +100,6 @@ rse <- function(dm, te) {
   # Assign sequence numbers
   se <- seqnum(se, sort = c("USUBJID", "SESTDTC"))
 
+  # Final SE dataset
   return(se)
 }
-
-# Call the function to create the dataset
-se <- rse(dm, te)
-
-
-

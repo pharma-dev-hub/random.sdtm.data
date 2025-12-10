@@ -9,7 +9,6 @@
 #' The following Permissible variables have NOT been mapped within the rlb function: LBREFID, LBSPID, LBTSTCND, LBBDAGNT, LBTSTOPO, LBRESSCL, LBRESTYP, LBCOLSRT, LBLLOD, LBSTNRC, LBNAM, LBLOINC, LBSPCCND, LBSPCUFL, LBANMETH, LBTMTHSN, LBBLFL, LBFAST, LBDRVFL, LBTOX, LBTOXGR, LBCLSIG, VISITDY, TAETORD, LBENDTC, LBENDY, LBTPT, LBTPTNUM, LBELTM, LBTPTREF, LBRFTDTC, LBPTFL, LBPDUR
 #' Dependency datasets: dm, se, sv
 #'
-#' @param domain By default, value has been set as "LB", user can modify it if needed but not recommended.
 #' @param drop_cat Mention the LBCAT value which needs to be dropped from the pre-defined list.
 #' @param drop_scat Mention the LBSCAT value which needs to be dropped from the pre-defined list.
 #' @param drop_testcd Mention the LBTESTCD value which needs to be dropped from the pre-defined list.
@@ -25,22 +24,20 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' lb <- rlb()
 #'
-#' rlb()
-#'
-#' rlb(domain = "LB",
-#'     drop_cat = c("COAGULATION"),
-#'     drop_testcd = c("ALB","ALT"),
-#'     drop_visn = c(5, 7),
-#'     drop_cat_visn = c("CHEMISTRY|1"),
-#'     drop_scat_visn = c("Renal Function|3"),
-#'     drop_testcd_visn = c("ALP|2, 4", "BILI|2, 4"),
-#'     grpid = c("AST|USUBJID|LBTESTCD|LBSPEC", "BILI|USUBJID|LBTESTCD|LBSPEC|LBDTC"),
-#'     sort_seq = c("STUDYID", "USUBJID", "VISITNUM", "LBTESTCD", "LBTEST", "LBDTC"))
-#'
+#' lb <- rlb(drop_cat = c("COAGULATION"),
+#'           drop_testcd = c("ALB","ALT"),
+#'           drop_visn = c(5, 7),
+#'           drop_cat_visn = c("CHEMISTRY|1"),
+#'           drop_scat_visn = c("Renal Function|3"),
+#'           drop_testcd_visn = c("ALP|2, 4", "BILI|2, 4"),
+#'           grpid = c("AST|USUBJID|LBTESTCD|LBSPEC", "BILI|USUBJID|LBTESTCD|LBSPEC|LBDTC"),
+#'           sort_seq = c("STUDYID", "USUBJID", "VISITNUM", "LBTESTCD", "LBTEST", "LBDTC"))
+#' }
 
-rlb <- function(domain = "LB",
-                drop_cat = c(),
+rlb <- function(drop_cat = c(),
                 drop_scat = c(),
                 drop_testcd = c(),
                 drop_visn = c(),
@@ -154,7 +151,9 @@ rlb <- function(domain = "LB",
   options(scipen = 999)  # Prevent scientific notation in display
 
   # Importing TEST, TESTCD, CAT, SCAT, RANGE Values as input
-  lb_in <- read_xlsx("inst/data/LB Input.xlsx", .name_repair = "universal")
+  path_lb <- system.file("extdata", "lb_input.xlsx", package = "random.sdtm.data", mustWork = TRUE)
+
+  lb_in <- read_xlsx(path_lb, .name_repair = "universal")
 
   # Mapping --GRPID variables
   if (length(grpid) > 0) {
@@ -236,8 +235,8 @@ rlb <- function(domain = "LB",
 
   # Mapping general variables
   df3 <- df2 %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain,
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "LB",
                 LBORRES = ifelse(!is.na(as.character(result_n)), as.character(result_n), as.character(result_c)),
                 LBORRESU = ifelse(LBORRES != "" & !is.na(LBORRES), as.character(LBORRESU), NA_character_),
                 LBSTRESN = ifelse(!is.na(conv_factor) & conv_factor != 1, conv_factor * suppressWarnings(as.numeric(LBORRES)), suppressWarnings(as.numeric(LBORRES))),
@@ -331,13 +330,13 @@ rlb <- function(domain = "LB",
                 LBSPEC, LBMETHOD, LBLOBXFL, VISITNUM, VISIT, EPOCH, LBDTC, LBDY)
 
   # Adding labels to the variables
-  df10 <- apply_metadata(df9, lb_metadata)
+  lb <- apply_metadata(df9, lb_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df10 <- df10 %>% select(-all_of(drop_vars))
+    lb <- lb %>% select(-all_of(drop_vars))
   }
 
   # Final LB dataset
-  assign("lb", df10, envir = .GlobalEnv)
+  return(lb)
 }

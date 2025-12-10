@@ -8,7 +8,6 @@
 #' For the given trt, visn values would be marched with data in sv dataset and necessary information from sv would be used.
 #' Dependency datasets: dm, se, sv
 #'
-#' @param domain By default, value has been set as "PR", user can modify it if needed but not recommended
 #' @param trt Values to be mapped under PRTRT variable
 #' @param visn VISITNUM values for each TRT value (optional). If you need more than one VISITNUM per TRT, then it should be separated by comma within quotes, ex: c("1, 2, 3") - this will be considered as three VISITNUM values for the first TRT value. If NA values or no values provided for VISN parameter, minimum VISITNUM from tv dataset would be auto-populated.
 #' @param cat Values to be mapped under PRCAT variable (optional)
@@ -29,20 +28,20 @@
 #' @export
 #'
 #' @examples
-#' rpr() #Creates PR dataset with predefined default values
+#' \dontrun{
+#' pr <- rpr() #Creates PR dataset with predefined default values
 #'
-#' rpr(trt = c("Biopsy", "CT scan", "MRI", "X-Ray"),
-#'     visn = c("1", "1, 2, 3, 99", NA, NA),
-#'     cat = c(NA, "Imaging", "Imaging", "Imaging"),
-#'     scat = c(NA, "Computed Tomography", "Magnetic Resonance Imaging", "Radiography"),
-#'     presp = c("Y", "Y", NA, NA),
-#'     loc = c(NA, "Chest", "Brain", "Knee"),
-#'     lat = c(NA, NA, NA, "LEFT"),
-#'     sort_seq = c("STUDYID", "USUBJID", "PRTRT", "PRDECOD", "PRSTDTC", "PRENDTC"))
-#'
+#' pr <- rpr(trt = c("Biopsy", "CT scan", "MRI", "X-Ray"),
+#'           visn = c("1", "1, 2, 3, 99", NA, NA),
+#'           cat = c(NA, "Imaging", "Imaging", "Imaging"),
+#'           scat = c(NA, "Computed Tomography", "Magnetic Resonance Imaging", "Radiography"),
+#'           presp = c("Y", "Y", NA, NA),
+#'           loc = c(NA, "Chest", "Brain", "Knee"),
+#'           lat = c(NA, NA, NA, "LEFT"),
+#'           sort_seq = c("STUDYID", "USUBJID", "PRTRT", "PRDECOD", "PRSTDTC", "PRENDTC"))
+#' }
 
-rpr <- function(domain = "PR",
-                trt = c("Biopsy", "CT scan", "MRI", "X-Ray"),
+rpr <- function(trt = c("Biopsy", "CT scan", "MRI", "X-Ray"),
                 visn = c("1", "1, 2, 3, 99", NA, NA),
                 cat = c(NA, "Imaging", "Imaging", "Imaging"),
                 scat = c(NA, "Computed Tomography", "Magnetic Resonance Imaging", "Radiography"),
@@ -56,8 +55,7 @@ rpr <- function(domain = "PR",
                 loc = c(NA, "Chest", "Brain", "Knee"),
                 lat = c(NA, NA, NA, "LEFT"),
                 sort_seq = c("STUDYID", "USUBJID", "PRTRT", "PRDECOD", "PRSTDTC", "PRENDTC"),
-                drop_vars = c()
-                ) {
+                drop_vars = c()) {
 
   # Metadata for the PR dataset
   pr_metadata <- list("STUDYID" = "Study Identifier",
@@ -208,8 +206,8 @@ rpr <- function(domain = "PR",
 
   # Mapping general variables
   df5 <- df4 %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain,
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "PR",
                 PRTRT = trt,
                 PRDECOD = toupper(trt),
                 PRCAT = cat,
@@ -244,14 +242,13 @@ rpr <- function(domain = "PR",
                  PRLOC, PRLAT, VISITNUM, VISIT, EPOCH, PRSTDTC, PRENDTC, PRSTDY, PRENDY)
 
   # Adding labels to the variables
-  df11 <- apply_metadata(df10, pr_metadata)
+  pr <- apply_metadata(df10, pr_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df11 <- df11 %>% select(-all_of(drop_vars))
+    pr <- pr %>% select(-all_of(drop_vars))
   }
 
   # Final PR dataset
-  assign("pr", df11, envir = .GlobalEnv)
-
+  return(pr)
 }

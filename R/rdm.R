@@ -6,11 +6,15 @@
 #' One record per subject.
 #'
 #' @param n_patients Number of patients to generate
-#' @param studyid Study identifier (default: "STUDY001")
 #' @param sites Character vector of site IDs
 #' @param investigators List with site IDs as names and investigator info as values
 #' @param arms List with arm codes and descriptions
-#' @param seed Random seed for reproducibility
+#' @param study_start Study start date, defaults to 2024-01-01
+#' @param status_probs Subject status Probability, defaults to c(ongoing = 0.80, completed = 0.15, discontinued = 0.05)
+#' @param study_duration_days Duration of the study, defaults to 84
+#' @param sex_probs Probability of Sex of Participants, defaults to c(M = 0.48, F = 0.52)
+#' @param race_probs Probability of Race of Participants, defaults to c("WHITE" = 0.7, "BLACK OR AFRICAN AMERICAN" = 0.15, "ASIAN" = 0.1, "AMERICAN INDIAN OR ALASKA NATIVE" = 0.03, "NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER" = 0.02).
+#' @param ethnic_probs Probability of Ethnic of Participants, defaults to c("HISPANIC OR LATINO" = 0.15, "NOT HISPANIC OR LATINO" = 0.80, "NA" = 0.05).
 #' @param na_prob Probability of NA values for optional fields
 #' @param cached Logical, use cached data if available
 #'
@@ -18,16 +22,9 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' dm <- rdm(n_patients = 100)
-#' head(dm)
-
-
-ta_arms <- ta %>%
-  select(ARMCD, ARM) %>%
-  distinct() %>%
-  arrange(ARMCD)
-
-arms_list <- map2(ta_arms$ARMCD, ta_arms$ARM, ~ list(code = .x, description = .y))
+#' }
 
 rdm <- function(n_patients = 400,
                 sites = c("001", "002", "003", "004"),
@@ -42,25 +39,24 @@ rdm <- function(n_patients = 400,
                 status_probs = c(ongoing = 0.80, completed = 0.15, discontinued = 0.05),
                 study_duration_days = 84,
                 sex_probs = c(M = 0.48, F = 0.52),
-                race_probs = c(
-                  "WHITE" = 0.70,
-                  "BLACK OR AFRICAN AMERICAN" = 0.15,
-                  "ASIAN" = 0.10,
-                  "AMERICAN INDIAN OR ALASKA NATIVE" = 0.03,
-                  "NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER" = 0.02
-                ),
+                race_probs = default_race_probs,
                 ethnic_probs = c(
                   "HISPANIC OR LATINO" = 0.15,
                   "NOT HISPANIC OR LATINO" = 0.80,
                   "NA" = 0.05
                 ),
-                seed = 1122,
                 na_prob = 0.05,
                 cached = FALSE) {
 
+  ta_arms <- ta %>%
+    select(ARMCD, ARM) %>%
+    distinct() %>%
+    arrange(ARMCD)
+
+  arms_list <- map2(ta_arms$ARMCD, ta_arms$ARM, ~ list(code = .x, description = .y))
+
   # Validate inputs
   checkmate::assert_count(n_patients, positive = TRUE)
-  checkmate::assert_string(studyid)
   checkmate::assert_character(sites, min.len = 1)
   checkmate::assert_list(investigators)
   checkmate::assert_list(arms, min.len = 1)
@@ -70,7 +66,6 @@ rdm <- function(n_patients = 400,
   checkmate::assert_numeric(sex_probs, lower = 0, upper = 1, len = 2)
   checkmate::assert_numeric(race_probs, lower = 0, upper = 1)
   checkmate::assert_numeric(ethnic_probs, lower = 0, upper = 1)
-  # checkmate::assert_number(seed, null.ok = TRUE)
   checkmate::assert_number(na_prob, lower = 0, upper = 1)
   checkmate::assert_flag(cached)
 
@@ -83,21 +78,18 @@ rdm <- function(n_patients = 400,
   if (cached) {
     return(get_cached_data("dm"))
   }
-  if (!is.null(seed)) {
-    set.seed(seed)
-  }
 
   # Generate base demographics
   dm <- tibble::tibble(
-    STUDYID = studyid,
+    STUDYID = get_studyid(),
     DOMAIN = "DM",
-    USUBJID = paste0(studyid, "-", sprintf("%04d", seq_len(n_patients))),
+    USUBJID = paste0(get_studyid(), "-", sprintf("%04d", seq_len(n_patients))),
     SUBJID = sprintf("%04d", seq_len(n_patients))
   )
 
   # Informed consent dates
-  dm$RFICDTC <- as.character(study_start - lubridate::days(with_seed(seed, sample(0:30, n_patients, replace = TRUE))))
-  dm$RFSTDTC <- as.character(lubridate::ymd(dm$RFICDTC) + lubridate::days(with_seed(seed, sample(1:7, n_patients, replace = TRUE))))
+  dm$RFICDTC <- as.character(study_start - lubridate::days(with_seed(get_with_seed(), sample(0:30, n_patients, replace = TRUE))))
+  dm$RFSTDTC <- as.character(lubridate::ymd(dm$RFICDTC) + lubridate::days(with_seed(get_with_seed(), sample(1:7, n_patients, replace = TRUE))))
   dm$RFXSTDTC <- dm$RFSTDTC
 
   # End dates
@@ -105,15 +97,15 @@ rdm <- function(n_patients = 400,
   dm$RFXENDTC <- NA_character_
   dm$RFPENDTC <- NA_character_
 
-  status <- with_seed(seed, sample(names(status_probs), n_patients, replace = TRUE, prob = status_probs))
+  status <- with_seed(get_with_seed(), sample(names(status_probs), n_patients, replace = TRUE, prob = status_probs))
   for (i in seq_len(n_patients)) {
     if (status[i] == "completed") {
       end_date <- lubridate::ymd(dm$RFSTDTC[i]) + lubridate::days(study_duration_days)
       dm$RFENDTC[i] <- as.character(end_date)
       dm$RFXENDTC[i] <- as.character(end_date)
-      dm$RFPENDTC[i] <- as.character(end_date + lubridate::days(with_seed(seed, sample(0:7, 1))))
+      dm$RFPENDTC[i] <- as.character(end_date + lubridate::days(with_seed(get_with_seed(), sample(0:7, 1))))
     } else if (status[i] == "discontinued") {
-      end_date <- lubridate::ymd(dm$RFSTDTC[i]) + lubridate::days(with_seed(seed, sample(1:60, 1)))
+      end_date <- lubridate::ymd(dm$RFSTDTC[i]) + lubridate::days(with_seed(get_with_seed(), sample(1:60, 1)))
       dm$RFENDTC[i] <- as.character(end_date)
       dm$RFXENDTC[i] <- as.character(end_date)
       dm$RFPENDTC[i] <- as.character(end_date)
@@ -123,7 +115,7 @@ rdm <- function(n_patients = 400,
   # Death info
   dm$DTHDTC <- NA_character_
   dm$DTHFL <- NA_character_
-  death_idx <- with_seed(seed, sample(seq_len(n_patients), size = ceiling(n_patients * 0.005)))
+  death_idx <- with_seed(get_with_seed(), sample(seq_len(n_patients), size = ceiling(n_patients * 0.005)))
   for (idx in death_idx) {
     if (!is.na(dm$RFENDTC[idx])) {
       dm$DTHDTC[idx] <- dm$RFENDTC[idx]
@@ -132,7 +124,7 @@ rdm <- function(n_patients = 400,
   }
 
   # Site and investigator
-  dm$SITEID <- with_seed(seed, sample(sites, n_patients, replace = TRUE))
+  dm$SITEID <- with_seed(get_with_seed(), sample(sites, n_patients, replace = TRUE))
   dm$INVID <- sapply(dm$SITEID, function(site) investigators[[site]]$id)
   dm$INVNAM <- sapply(dm$SITEID, function(site) investigators[[site]]$name)
 
@@ -144,9 +136,9 @@ rdm <- function(n_patients = 400,
   dm$BRTHDTC <- as.character(lubridate::ymd(dm$RFICDTC) - lubridate::years(dm$AGE))
 
   # Sex, race, ethnicity
-  dm$SEX <- with_seed(seed, sample(names(sex_probs), n_patients, replace = TRUE, prob = sex_probs))
-  dm$RACE <- with_seed(seed, sample(names(race_probs), n_patients, replace = TRUE, prob = race_probs))
-  dm$ETHNIC <- with_seed(seed, sample(names(ethnic_probs), n_patients, replace = TRUE, prob = ethnic_probs))
+  dm$SEX <- with_seed(get_with_seed(), sample(names(sex_probs), n_patients, replace = TRUE, prob = sex_probs))
+  dm$RACE <- with_seed(get_with_seed(), sample(names(race_probs), n_patients, replace = TRUE, prob = race_probs))
+  dm$ETHNIC <- with_seed(get_with_seed(), sample(names(ethnic_probs), n_patients, replace = TRUE, prob = ethnic_probs))
 
   # Treatment arms
   arm_codes <- sapply(arms, function(x) x$code)
@@ -158,15 +150,15 @@ rdm <- function(n_patients = 400,
   # Actual arm (crossover)
   dm$ACTARMCD <- dm$ARMCD
   dm$ACTARM <- dm$ARM
-  crossover_idx <- with_seed(seed, sample(seq_len(n_patients), size = ceiling(n_patients * 0.02)))
+  crossover_idx <- with_seed(get_with_seed(), sample(seq_len(n_patients), size = ceiling(n_patients * 0.02)))
   for (idx in crossover_idx) {
-    new_arm <- with_seed(seed, sample(arm_codes[arm_codes != dm$ARMCD[idx]], 1))
+    new_arm <- with_seed(get_with_seed(), sample(arm_codes[arm_codes != dm$ARMCD[idx]], 1))
     dm$ACTARMCD[idx] <- new_arm
     dm$ACTARM[idx] <- arms[[which(arm_codes == new_arm)]]$description
   }
 
   # Country
-  dm$COUNTRY <- with_seed(seed, sample(
+  dm$COUNTRY <- with_seed(get_with_seed(), sample(
     c("USA", "CAN", "GBR", "DEU", "FRA", "JPN", "AUS"),
     n_patients,
     replace = TRUE,
@@ -217,7 +209,7 @@ rdm <- function(n_patients = 400,
     ETHNIC   = "Ethnicity",
     ARMCD    = "Planned Arm Code",
     ARM      = "Description of Planned Arm",
-    ARMNRS   = "Planned Arm (Narrow)",
+    ARMNRS   = "Reason Arm and/or Actual Arm is Null",
     ACTARMCD = "Actual Arm Code",
     ACTARM   = "Description of Actual Arm",
     ACTARMUD = "Actual Arm Used",
@@ -227,9 +219,6 @@ rdm <- function(n_patients = 400,
   )
   apply_metadata(dm, metadata)
 
+  # Final DM dataset
   return(dm)
 }
-
-dm <- rdm(n_patients = 79)
-
-

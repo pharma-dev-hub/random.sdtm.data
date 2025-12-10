@@ -9,7 +9,6 @@
 #' The following Permissible variables have NOT been mapped within the reg function: SPDEVID, EGREFID, EGSPID, EGBEATNO, EGXFN, EGNAM, EGMETHOD, EGLEAD, EGBLFL, EGDRVFL, EGEVAL, EGEVALID, EGCLSIG, EGREPNUM, VISITDY, TAETORD, EGELTM, EGTPTREF, EGRFTDTC.
 #' Dependency datasets: dm, se, sv
 #'
-#' @param domain By default, value has been set as "EG", user can modify it if needed but not recommended
 #' @param testcd Values to be mapped under EGTESTCD variable
 #' @param test Values to be mapped under EGTEST variable
 #' @param unit_org Values to be mapped under EGORRESU variable (optional) - If no values has been given as input for unit_org, default units will be used for each Tests are as follows: EGHRMN = beats/min, INTP = NA, PRAG =  ms, QRSAG = ms, QTAG = ms, QTCAAG = ms, QTCBAG = ms, QTCFAG = ms, RRAG = ms. List of units allowed as inputs for each Tests are as follows: EGHRMN = beats/min; INTP = NA_character_; PRAG = ms, s; QRSAG = ms, s; QTAG = ms, s; QTCAAG = ms, s; QTCBAG = ms, s; QTCFAG = ms, s; RRAG = ms, s.
@@ -26,20 +25,24 @@
 #' @export
 #'
 #' @examples
-#' reg(testcd = c("EGHRMN", "INTP", "PRAG", "QRSAG", "QTAG", "QTCAAG", "QTCBAG", "QTCFAG", "RRAG"),
-#'     test = c("ECG Mean Heart Rate", "Interpretation", "PR Interval, Aggregate", "QRS Duration, Aggregate", "QT Interval, Aggregate", "QTca Interval, Aggregate", "QTcB Interval, Aggregate", "QTcF Interval, Aggregate", "RR Interval, Aggregate"),
-#'     unit_org = c("beats/min", NA, "ms", "ms", "ms", "ms", "ms", "ms", "ms"),
-#'     unit_std = c("beats/min", NA, "ms", "ms", "ms", "ms", "ms", "ms", "ms"),
-#'     cat = c("ECG Results", rep(NA, 7), "ECG Results"),
-#'     scat = c(rep(NA, 9)),
-#'     tpt = c("EGHRMN|Pre-Dose|-1", "EGHRMN|Post-Dose|1"),
-#'     pos = c("SUPINE", rep(NA, 8)),
-#'     grpid = c("INTP|USUBJID|VISIT|EGDTC"),
-#'     drop_vars = c())
-#'
+#' \dontrun{
+#' eg <- reg(testcd = c("EGHRMN", "INTP", "PRAG", "QRSAG", "QTAG",
+#'                      "QTCAAG", "QTCBAG", "QTCFAG", "RRAG"),
+#'           test = c("ECG Mean Heart Rate", "Interpretation", "PR Interval, Aggregate",
+#'                    "QRS Duration, Aggregate", "QT Interval, Aggregate",
+#'                    "QTca Interval, Aggregate", "QTcB Interval, Aggregate",
+#'                    "QTcF Interval, Aggregate", "RR Interval, Aggregate"),
+#'           unit_org = c("beats/min", NA, "ms", "ms", "ms", "ms", "ms", "ms", "ms"),
+#'           unit_std = c("beats/min", NA, "ms", "ms", "ms", "ms", "ms", "ms", "ms"),
+#'           cat = c("ECG Results", rep(NA, 7), "ECG Results"),
+#'           scat = c(rep(NA, 9)),
+#'           tpt = c("EGHRMN|Pre-Dose|-1", "EGHRMN|Post-Dose|1"),
+#'           pos = c("SUPINE", rep(NA, 8)),
+#'           grpid = c("INTP|USUBJID|VISIT|EGDTC"),
+#'           drop_vars = c())
+#' }
 
-reg <- function(domain = "EG",
-                testcd = c(),
+reg <- function(testcd = c(),
                 test = c(),
                 unit_org = c(),
                 unit_std = c(),
@@ -259,7 +262,7 @@ reg <- function(domain = "EG",
 
   # Input SV dataset to create data for each visit occurred
   sv_in <- sv %>%
-           filter(SVOCCUR == "Y") %>%
+           filter(SVOCCUR == "Y" | is.na(SVOCCUR) | SVOCCUR == "") %>%
            select(USUBJID, VISIT, VISITNUM, SVSTDTC)
 
   # Crossing SV with TEST to get test records each subject/visit
@@ -292,8 +295,8 @@ reg <- function(domain = "EG",
 
   # Mapping general variables and Result variables
   df2 <- df1 %>%
-         mutate(STUDYID = studyid,
-                DOMAIN = domain,
+         mutate(STUDYID = get_studyid(),
+                DOMAIN = "EG",
                 EGTESTCD = testcd,
                 EGTEST = test,
                 EGCAT = cat,
@@ -373,14 +376,13 @@ reg <- function(domain = "EG",
                 EGDY, EGTPT, EGTPTNUM)
 
   # Adding labels to the variables
-  df9 <- apply_metadata(df8, eg_metadata)
+  eg <- apply_metadata(df8, eg_metadata)
 
   # Drop Variables
   if (length(drop_vars) > 0) {
-    df9 <- df9 %>% select(-all_of(drop_vars))
+    eg <- eg %>% select(-all_of(drop_vars))
   }
 
   # Final EG dataset
-  assign("eg", df9, envir = .GlobalEnv)
-
+  return(eg)
 }
